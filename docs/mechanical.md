@@ -2,7 +2,7 @@
 
 [Project overview](../README.md) · [Hardware and wiring](hardware.md) · [ZMK](zmk.md)
 
-All dimensions below are in **millimetres**. The plan dimensions come from the current Color View PCB and are rounded to 0.01 mm. Thickness values are the production measurements supplied by the manufacturer. They are different sources, not a tolerance specification for every finished module.
+All dimensions below are in **millimetres**. The plan dimensions come from the current Color View PCB and are rounded to 0.01 mm. PCB, component, screen, and assembled thickness values were supplied by the manufacturer; adhesive thickness is inferred from their total. These are different sources, not a tolerance specification for every finished module.
 
 ![Color View dimensions, mounting ears, and thickness](../assets/mechanical/color-view-dimensions.svg)
 
@@ -17,10 +17,11 @@ All dimensions below are in **millimetres**. The plan dimensions come from the c
 | Top FPC relief | 11.03 opening width × 1.00 depth |
 | PCB thickness | 1.00 |
 | Component height | 1.00 |
+| Adhesive between PCB and screen | Approximately 0.15, inferred from the stack total |
 | Screen thickness | 0.85 |
 | Actual assembled thickness | **3.00** |
 
-The 3.00 mm assembly measurement is supplied separately; do not replace it with 2.85 mm by adding the individual values. Optional headers, mating connectors, cables, screw heads, and standoffs require additional clearance. LCD and cable overhang are not dimensioned in this PCB drawing.
+The adhesive layer between the PCB and screen accounts for the remaining thickness: **components 1.00 + PCB 1.00 + adhesive approximately 0.15 + screen 0.85 = assembled 3.00 mm**. The adhesive position is confirmed by the manufacturer; its approximately 0.15 mm thickness is calculated from the supplied values, not independently measured. Optional headers, mating connectors, cables, screw heads, and standoffs require additional clearance. LCD and cable overhang are not dimensioned in this PCB drawing.
 
 ## Coordinate reference for keyboard PCB design
 

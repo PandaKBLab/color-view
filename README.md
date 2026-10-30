@@ -54,7 +54,7 @@ The 3.3 V connection describes the current reference setup; a guaranteed operati
 - **Connection options:** J1 is a 1 × 5, 2.54 mm header interface; J2 is a 5-pin, 0.50 mm FPC interface with bottom contacts for a 0.30 mm cable contact section. Use either connector.
 - **PCB outline:** 26.99 × 45.48 mm with all four ears; nominal body 26.99 × 36.34 mm after removing the ears and dressing residual edges.
 - **Mounting:** four removable ears with 2.20 mm holes for M2 screws; hole centers are 21.00 × 41.19 mm apart.
-- **Thickness:** PCB 1.00 mm, components 1.00 mm, screen 0.85 mm; actual assembled thickness supplied by the manufacturer is 3.00 mm.
+- **Thickness:** PCB 1.00 mm, components 1.00 mm, screen 0.85 mm, and an adhesive layer between the PCB and screen. Actual assembled thickness is 3.00 mm; the adhesive thickness is approximately 0.15 mm, inferred from those values.
 - **Protective film:** the display surface has a removable film that can be peeled off before use.
 
 See [dimensions and installation](docs/mechanical.md) for coordinates and [the connector diagram](assets/wiring/color-view-connectors.svg) for pin orientation. Outline values are CAD nominal dimensions; allow for the purchased revision and mating hardware.

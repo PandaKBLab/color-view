@@ -66,6 +66,6 @@ Use a suitable supply switch or the controller's supported peripheral-power outp
 
 See [dimensions and installation](mechanical.md) for the dimension drawing, M2 hole centers, interface pad coordinates, thickness, and removable mounting ears. The current PCB body is nominally 26.99 × 36.34 mm, or 26.99 × 45.48 mm including the ears.
 
-Production dimensions supplied by the manufacturer: PCB 1.00 mm, component height 1.00 mm, screen thickness 0.85 mm, and actual assembled thickness **3.00 mm**. The assembled value is provided separately; do not substitute the sum of individual parts. Added headers, cables, screw heads, and enclosure clearances need their own space.
+Production dimensions supplied by the manufacturer: PCB 1.00 mm, component height 1.00 mm, screen thickness 0.85 mm, and actual assembled thickness **3.00 mm**. An adhesive layer sits between the PCB and screen. Its thickness is approximately **0.15 mm**, inferred as 3.00 − 1.00 − 1.00 − 0.85; it has not been supplied as an independent measurement. Added headers, cables, screw heads, and enclosure clearances need their own space.
 
 The screen surface has a removable protective film. It can be peeled off before use.
