@@ -1,14 +1,10 @@
-# Product photos and display references
+# Product illustrations and photos
 
-This directory is reserved for actual product photos, wiring illustrations, and display-layout images. No image assets are included in this starter draft.
+Current public illustrations:
 
-Suggested organization when assets are ready:
+- [PCB dimensions, removable M2 ears, and thickness](mechanical/color-view-dimensions.svg)
+- [J1 header and J2 FPC connector pin numbering](wiring/color-view-connectors.svg)
 
-```text
-assets/
-├── photos/          # Module front/back and installation in a keyboard
-├── wiring/          # Connector numbering and verified wiring diagrams
-└── layouts/         # Real screen photos paired with their firmware examples
-```
+These illustrations show the product's external mechanical and electrical interfaces. Connector bodies are schematic; use the corresponding documentation for dimensions and pin-number definitions. Product photographs and real display-layout images are not included yet.
 
-Choose a clear module-in-keyboard photo for the main README. Keep images reasonably small for mobile browsing; distinguish rendered layout concepts from photographs of working hardware. Wiring images should show external connector numbering. Use photos that do not expose internal component markings, circuit details, or editable PCB source.
+For future photos, show the display installed in a keyboard and keep files suitable for mobile browsing. Wiring images should show external connector numbering. Select views that do not expose internal component markings, circuit details, or editable PCB source.

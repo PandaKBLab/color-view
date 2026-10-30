@@ -15,6 +15,19 @@ This guide describes the external interface of the Color View module used in the
 | Chip select | Active high; low when idle |
 | Reference SPI configuration | Mode 0, 500 kHz, with the matching Color View driver |
 
+## Two connection options
+
+| Input | Format | Keyboard-side requirement |
+| --- | --- | --- |
+| J1 | 1 × 5 contacts, 2.54 mm pitch, through-hole header interface | Use the five-signal mapping below; choose a suitable mating header/socket and check its height. |
+| J2 | 5 contacts, 0.50 mm pitch, bottom-contact FPC connector | Cable contact-section thickness 0.30 mm; verify the contact orientation at both ends. |
+
+Use **one** input connector. J1 and J2 carry the same five signals; they are not independent display channels.
+
+![Rear-side connector pin numbering](../assets/wiring/color-view-connectors.svg)
+
+The illustration is a **rear PCB / solder-pad view**, with the top FPC relief pointing up and the connectors facing you. It is not a view looking into the FPC slot. Match pin numbers rather than relying on cable left/right appearance.
+
 ## Connector pin numbers
 
 These are **module-side pin numbers**, not a left-to-right view of the connector. J1 and J2 provide the same signals with different numbering. Use one input connector.
@@ -51,4 +64,8 @@ Use a suitable supply switch or the controller's supported peripheral-power outp
 
 ## Mechanical integration
 
-Use the final mechanical drawing for your purchased module revision before designing a keyboard PCB or enclosure. Dimensions and FPC clearance from older prototypes are not a substitute for that drawing. A release drawing will be added when the product revision is finalized.
+See [dimensions and installation](mechanical.md) for the dimension drawing, M2 hole centers, interface pad coordinates, thickness, and removable mounting ears. The current PCB body is nominally 26.99 × 36.34 mm, or 26.99 × 45.48 mm including the ears.
+
+Production dimensions supplied by the manufacturer: PCB 1.00 mm, component height 1.00 mm, screen thickness 0.85 mm, and actual assembled thickness **3.00 mm**. The assembled value is provided separately; do not substitute the sum of individual parts. Added headers, cables, screw heads, and enclosure clearances need their own space.
+
+The screen surface has a removable protective film. It can be peeled off before use.

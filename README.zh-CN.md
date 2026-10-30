@@ -17,6 +17,7 @@ Color View是面向DIY键盘的显示模块，尺寸1.33英寸、分辨率128 ×
 | 你的需求 | 对应文档 |
 | --- | --- |
 | 确认接口、电源和接线 | [硬件与接线](docs/hardware.md) |
+| 查看尺寸、厚度和可掰除的M2安装耳 | [尺寸与安装](docs/mechanical.md) |
 | 确认主控或键盘的适配情况 | [兼容性](docs/compatibility.md) |
 | 了解如何接入ZMK | [ZMK接入说明](docs/zmk.md) |
 | 参考显示内容和界面布局 | [界面设计参考](docs/display-layouts.md) |
@@ -45,6 +46,18 @@ Color View是面向DIY键盘的显示模块，尺寸1.33英寸、分辨率128 ×
 | 参考主控 | 定制Helix工程中的nice!nano v2 |
 
 3.3 V接线描述的是当前参考方案；目前尚未公布保证工作范围及模块实测功耗。接入前请阅读[电源与验证说明](docs/hardware.md#power-and-validation)。
+
+## 尺寸、安装与接口
+
+![Color View PCB尺寸与装配厚度](assets/mechanical/color-view-dimensions.svg)
+
+- **两种接线方式：**J1为1 × 5、2.54 mm间距的排针接口；J2为5Pin、0.50 mm间距的FPC接口，下接触，适配接触端厚度0.30 mm的排线。二选一使用。
+- **PCB外形：**保留四个安装耳时为26.99 × 45.48 mm；掰除安装耳并修整残留边缘后，主体名义尺寸为26.99 × 36.34 mm。
+- **安装孔：**四个可掰除的安装耳，每个带一个适用于M2螺丝的2.20 mm孔；孔中心距21.00 × 41.19 mm。
+- **厚度：**PCB 1.00 mm、元件高度1.00 mm、屏幕厚度0.85 mm；厂家提供的实际装配总厚度为3.00 mm。
+- **保护膜：**屏幕表面带有可撕除保护膜，使用前可揭掉。
+
+孔位坐标见[尺寸与安装](docs/mechanical.md)，接口方向见[引脚示意图](assets/wiring/color-view-connectors.svg)。平面尺寸为CAD名义尺寸；结构设计时请结合购买版本及配套连接件预留空间。
 
 ## 接入前确认
 
