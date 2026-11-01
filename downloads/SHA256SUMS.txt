@@ -1,0 +1,2 @@
+7a607c17ef2c02b70f254367476b33ab514ba1e241c41136e5dca0c0c9df215d  ColorView-EasyEDA-v0.2.0.zip
+4ce9ec457294d7c44ed4e6e87000c50d2aee84499b7c3eb569f5dcfa97fd44fb  ColorView-KiCad-v0.2.0.zip

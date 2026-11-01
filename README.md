@@ -12,6 +12,14 @@ Color View is a 1.33-inch, 128 × 128 Memory LCD module for DIY keyboards. It su
 
 **Repository status:** Documentation starter. A Color View reference integration exists for a custom Helix keyboard with nice!nano v2; a reusable public driver package and ready-to-build keyboard examples have not been published here yet.
 
+## CAD downloads
+
+- [EasyEDA library ZIP](downloads/ColorView-EasyEDA-v0.2.0.zip?raw=true)
+- [KiCad library ZIP](downloads/ColorView-KiCad-v0.2.0.zip?raw=true)
+- [Library selection and import guide](hardware/ColorView-Library/README.md)
+
+Five devices, including 5-pin headers, removable-ear mounting variants and the separate HC-FPC-05-10-5RLTAG FPC connector, with symbols, footprints and STEP models.
+
 ## Start here
 
 | I want to… | Read |

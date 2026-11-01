@@ -1,0 +1,123 @@
+{
+  "version": "0.2.0",
+  "easyedaVersion": "4.1.78",
+  "kicadVersion": "7.0.1",
+  "easyedaNativeArchive": {
+    "devices": [
+      {
+        "name": "ColorView_5Pin_P2.54_M2",
+        "supply": "VCC: regulated 3.3 V or 5 V",
+        "logic": "3.3 V",
+        "modelReference": ""
+      },
+      {
+        "name": "ColorView_5Pin_P2.54_NoEars",
+        "supply": "VCC: regulated 3.3 V or 5 V",
+        "logic": "3.3 V",
+        "modelReference": ""
+      },
+      {
+        "name": "ColorView_Mount_M2",
+        "supply": "VCC: regulated 3.3 V or 5 V",
+        "logic": "3.3 V",
+        "modelReference": ""
+      },
+      {
+        "name": "ColorView_Outline_NoEars",
+        "supply": "VCC: regulated 3.3 V or 5 V",
+        "logic": "3.3 V",
+        "modelReference": ""
+      },
+      {
+        "name": "ColorView_FPC_Interface",
+        "supply": "VCC: regulated 3.3 V or 5 V",
+        "logic": "3.3 V",
+        "modelReference": ""
+      }
+    ],
+    "symbols": 3,
+    "footprints": 5
+  },
+  "kicadFootprints": [
+    {
+      "device": "ColorView_5Pin_P2.54_M2",
+      "footprint": "ColorView_5Pin_P2.54_M2",
+      "pads": 9,
+      "nativePadGeometryMatches": true,
+      "modelFileExists": true,
+      "vccSilk": true,
+      "noKeyboardEdgeCuts": true
+    },
+    {
+      "device": "ColorView_5Pin_P2.54_NoEars",
+      "footprint": "ColorView_5Pin_P2.54_NoEars",
+      "pads": 5,
+      "nativePadGeometryMatches": true,
+      "modelFileExists": true,
+      "vccSilk": true,
+      "noKeyboardEdgeCuts": true
+    },
+    {
+      "device": "ColorView_Mount_M2",
+      "footprint": "ColorView_Mount_M2",
+      "pads": 4,
+      "nativePadGeometryMatches": true,
+      "modelFileExists": true,
+      "vccSilk": null,
+      "noKeyboardEdgeCuts": true
+    },
+    {
+      "device": "ColorView_Outline_NoEars",
+      "footprint": "ColorView_Outline_NoEars",
+      "pads": 0,
+      "nativePadGeometryMatches": true,
+      "modelFileExists": true,
+      "vccSilk": null,
+      "noKeyboardEdgeCuts": true
+    },
+    {
+      "device": "ColorView_FPC_Interface",
+      "footprint": "ColorView_FPC_HC-FPC-05-10-5RLTAG",
+      "pads": 7,
+      "nativePadGeometryMatches": true,
+      "modelFileExists": true,
+      "vccSilk": null,
+      "noKeyboardEdgeCuts": true
+    }
+  ],
+  "stepModels": [
+    {
+      "model": "ColorView_FPC_HC-FPC-05-10-5RLTAG.step",
+      "valid": true,
+      "solids": 4,
+      "sizeMm": [
+        4.28,
+        3.92,
+        1.01
+      ]
+    },
+    {
+      "model": "ColorView_NoEars.step",
+      "valid": true,
+      "solids": 10,
+      "sizeMm": [
+        26.994599,
+        36.3396,
+        3.0
+      ]
+    },
+    {
+      "model": "ColorView_WithEars.step",
+      "valid": true,
+      "solids": 10,
+      "sizeMm": [
+        26.994599,
+        45.483615,
+        3.0
+      ]
+    }
+  ],
+  "symbolsParsedAndSvgExported": 5,
+  "physicalMatingTested": false,
+  "moduleCircuitIncluded": false
+}

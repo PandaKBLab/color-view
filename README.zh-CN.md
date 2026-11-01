@@ -12,6 +12,14 @@ Color View是面向DIY键盘的显示模块，尺寸1.33英寸、分辨率128 ×
 
 **仓库进度：**当前为文档起步版。已有定制Helix键盘搭配nice!nano v2的Color View参考实现；本仓库尚未发布可复用的公共驱动包及可直接编译的键盘示例。
 
+## 封装库下载
+
+- [嘉立创EDA库 ZIP](downloads/ColorView-EasyEDA-v0.2.0.zip?raw=true)
+- [KiCad库 ZIP](downloads/ColorView-KiCad-v0.2.0.zip?raw=true)
+- [器件选择与导入说明](hardware/ColorView-Library/README.zh-CN.md)
+
+包含5个器件的符号、封装及STEP模型：五针接口、带耳/去耳安装方案，以及独立的HC-FPC-05-10-5RLTAG FPC连接器。
+
 ## 从这里开始
 
 | 你的需求 | 对应文档 |

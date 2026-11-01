@@ -12,6 +12,14 @@ Color Viewは、自作キーボード向けの1.33インチ、128 × 128ピク�
 
 **公開状況：**本リポジトリはドキュメントの初期版です。独自Helixキーボードとnice!nano v2を組み合わせたColor Viewの実装例はありますが、再利用可能な公開ドライバーパッケージと、そのままビルドできるキーボード別サンプルは、まだ公開していません。
 
+## CADライブラリのダウンロード
+
+- [EasyEDA用ZIP](downloads/ColorView-EasyEDA-v0.2.0.zip?raw=true)
+- [KiCad用ZIP](downloads/ColorView-KiCad-v0.2.0.zip?raw=true)
+- [ライブラリの選択と導入](hardware/ColorView-Library/README.ja.md)
+
+5種類のシンボル・フットプリントとSTEPモデルを収録。5ピンヘッダ、取付耳あり/なしの形状、独立したHC-FPC-05-10-5RLTAG FPCコネクタを提供します。
+
 ## はじめに
 
 | 確認したいこと | ドキュメント |

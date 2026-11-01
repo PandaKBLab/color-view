@@ -69,3 +69,7 @@ See [dimensions and installation](mechanical.md) for the dimension drawing, M2 h
 Production dimensions supplied by the manufacturer: PCB 1.00 mm, component height 1.00 mm, screen thickness 0.85 mm, and actual assembled thickness **3.00 mm**. An adhesive layer sits between the PCB and screen. Its thickness is approximately **0.15 mm**, inferred as 3.00 − 1.00 − 1.00 − 0.85; it has not been supplied as an independent measurement. Added headers, cables, screw heads, and enclosure clearances need their own space.
 
 The screen surface has a removable protective film. It can be peeled off before use.
+
+## CAD libraries
+
+Download the [EasyEDA and KiCad libraries](../hardware/ColorView-Library/README.md). Both include header, removable-ear mounting variants, a separate FPC connector and STEP models. The power silk reads VCC.

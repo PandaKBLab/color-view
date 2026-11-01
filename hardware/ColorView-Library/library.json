@@ -1,0 +1,371 @@
+{
+  "version": "0.2.0",
+  "product": "Color View",
+  "view": "Keyboard PCB top view, display face up, FPC relief toward top",
+  "units": "mm",
+  "pin1Marker": "triangle",
+  "squareElectricalPad": "4 GND",
+  "headerPins": {
+    "1": "MOSI",
+    "2": "SCK",
+    "3": "VCC / 3.3 V or 5 V",
+    "4": "GND",
+    "5": "CS"
+  },
+  "moduleFpcPins": {
+    "1": "CS",
+    "2": "GND",
+    "3": "VCC / 3.3 V or 5 V",
+    "4": "SCK",
+    "5": "MOSI"
+  },
+  "variants": [
+    {
+      "name": "ColorView_5Pin_P2.54_M2",
+      "origin": "pin 1",
+      "pads": [
+        {
+          "number": 1,
+          "signal": "MOSI",
+          "x": 0.0,
+          "y": 0.0,
+          "shape": "circle"
+        },
+        {
+          "number": 2,
+          "signal": "SCK",
+          "x": 2.54,
+          "y": 0.0,
+          "shape": "circle"
+        },
+        {
+          "number": 3,
+          "signal": "VCC_IN",
+          "x": 5.08,
+          "y": 0.0,
+          "shape": "circle"
+        },
+        {
+          "number": 4,
+          "signal": "GND",
+          "x": 7.62,
+          "y": 0.0,
+          "shape": "rect"
+        },
+        {
+          "number": 5,
+          "signal": "CS",
+          "x": 10.16,
+          "y": 0.0,
+          "shape": "circle"
+        }
+      ],
+      "mountingHoles": [
+        {
+          "x": -5.421262,
+          "y": -37.232026,
+          "drill": 2.2,
+          "plated": false
+        },
+        {
+          "x": -5.421262,
+          "y": 3.958984,
+          "drill": 2.2,
+          "plated": false
+        },
+        {
+          "x": 15.578737,
+          "y": -37.232026,
+          "drill": 2.2,
+          "plated": false
+        },
+        {
+          "x": 15.578737,
+          "y": 3.958984,
+          "drill": 2.2,
+          "plated": false
+        }
+      ],
+      "model": "ColorView_WithEars.step",
+      "kicadModelOffset": [
+        5.078739,
+        16.636521,
+        3
+      ],
+      "easyedaModelOffset": [
+        5.078739,
+        16.636521,
+        2
+      ],
+      "modelSize": [
+        26.994599,
+        45.483615,
+        3
+      ]
+    },
+    {
+      "name": "ColorView_5Pin_P2.54_NoEars",
+      "origin": "pin 1",
+      "pads": [
+        {
+          "number": 1,
+          "signal": "MOSI",
+          "x": 0.0,
+          "y": 0.0,
+          "shape": "circle"
+        },
+        {
+          "number": 2,
+          "signal": "SCK",
+          "x": 2.54,
+          "y": 0.0,
+          "shape": "circle"
+        },
+        {
+          "number": 3,
+          "signal": "VCC_IN",
+          "x": 5.08,
+          "y": 0.0,
+          "shape": "circle"
+        },
+        {
+          "number": 4,
+          "signal": "GND",
+          "x": 7.62,
+          "y": 0.0,
+          "shape": "rect"
+        },
+        {
+          "number": 5,
+          "signal": "CS",
+          "x": 10.16,
+          "y": 0.0,
+          "shape": "circle"
+        }
+      ],
+      "mountingHoles": [],
+      "model": "ColorView_NoEars.step",
+      "kicadModelOffset": [
+        5.078739,
+        16.636521,
+        3
+      ],
+      "easyedaModelOffset": [
+        5.078739,
+        16.636521,
+        2
+      ],
+      "modelSize": [
+        26.994599,
+        36.3396,
+        3
+      ]
+    },
+    {
+      "name": "ColorView_Mount_M2",
+      "origin": "main PCB body center",
+      "pads": [],
+      "mountingHoles": [
+        {
+          "x": -10.500001,
+          "y": -20.595505,
+          "drill": 2.2,
+          "plated": false
+        },
+        {
+          "x": -10.500001,
+          "y": 20.595505,
+          "drill": 2.2,
+          "plated": false
+        },
+        {
+          "x": 10.499998,
+          "y": -20.595505,
+          "drill": 2.2,
+          "plated": false
+        },
+        {
+          "x": 10.499998,
+          "y": 20.595505,
+          "drill": 2.2,
+          "plated": false
+        }
+      ],
+      "model": "ColorView_WithEars.step",
+      "kicadModelOffset": [
+        0.0,
+        -0.0,
+        3
+      ],
+      "easyedaModelOffset": [
+        0.0,
+        -0.0,
+        2
+      ],
+      "modelSize": [
+        26.994599,
+        45.483615,
+        3
+      ]
+    },
+    {
+      "name": "ColorView_Outline_NoEars",
+      "origin": "main PCB body center",
+      "pads": [],
+      "mountingHoles": [],
+      "model": "ColorView_NoEars.step",
+      "kicadModelOffset": [
+        0.0,
+        -0.0,
+        3
+      ],
+      "easyedaModelOffset": [
+        0.0,
+        -0.0,
+        2
+      ],
+      "modelSize": [
+        26.994599,
+        36.3396,
+        3
+      ]
+    },
+    {
+      "name": "ColorView_FPC_Interface",
+      "footprint": "ColorView_FPC_HC-FPC-05-10-5RLTAG",
+      "origin": "connector footprint origin",
+      "pads": [
+        {
+          "number": 1,
+          "signal": "CS",
+          "x": 0.9999979999999999,
+          "y": 1.405001,
+          "shape": "rect",
+          "size": [
+            0.29999939999999997,
+            0.6500114
+          ],
+          "padType": "SMD"
+        },
+        {
+          "number": 2,
+          "signal": "GND",
+          "x": 0.500126,
+          "y": 1.405001,
+          "shape": "rect",
+          "size": [
+            0.29999939999999997,
+            0.6500114
+          ],
+          "padType": "SMD"
+        },
+        {
+          "number": 3,
+          "signal": "VCC",
+          "x": 0.0,
+          "y": 1.405001,
+          "shape": "rect",
+          "size": [
+            0.29999939999999997,
+            0.6500114
+          ],
+          "padType": "SMD"
+        },
+        {
+          "number": 4,
+          "signal": "SCK",
+          "x": -0.499872,
+          "y": 1.405001,
+          "shape": "rect",
+          "size": [
+            0.29999939999999997,
+            0.6500114
+          ],
+          "padType": "SMD"
+        },
+        {
+          "number": 5,
+          "signal": "MOSI",
+          "x": -0.9999979999999999,
+          "y": 1.405001,
+          "shape": "rect",
+          "size": [
+            0.29999939999999997,
+            0.6500114
+          ],
+          "padType": "SMD"
+        },
+        {
+          "number": 7,
+          "signal": "MP2",
+          "x": 1.8849339999999997,
+          "y": -1.405001,
+          "shape": "rect",
+          "size": [
+            0.29999939999999997,
+            1.1500104
+          ],
+          "padType": "SMD"
+        },
+        {
+          "number": 6,
+          "signal": "MP1",
+          "x": -1.8849339999999997,
+          "y": -1.405001,
+          "shape": "rect",
+          "size": [
+            0.29999939999999997,
+            1.1500104
+          ],
+          "padType": "SMD"
+        }
+      ],
+      "mountingHoles": [],
+      "model": "ColorView_FPC_HC-FPC-05-10-5RLTAG.step",
+      "kicadModelOffset": [
+        0.005,
+        0.4499864,
+        0.01
+      ],
+      "easyedaModelOffset": [
+        0,
+        0.45,
+        0
+      ],
+      "modelSize": [
+        4.28,
+        3.92,
+        1.01
+      ]
+    }
+  ],
+  "moduleThickness": 3,
+  "defaultIllustrativePcbUndersideGap": 3,
+  "defaultIllustrativeLowestEnvelopeClearance": 2,
+  "modelNotes": "External assembly envelope, not internal component geometry. Glass position is simplified; not a production enclosure/window datum. Recheck actual mounting connectors and clearances.",
+  "power": {
+    "VCC": "regulated 3.3 V or 5 V",
+    "signalLogic": "3.3 V"
+  },
+  "fpcConnector": {
+    "device": "ColorView_FPC_Interface",
+    "footprint": "ColorView_FPC_HC-FPC-05-10-5RLTAG",
+    "part": "HC-FPC-05-10-5RLTAG",
+    "signals": {
+      "1": "CS",
+      "2": "GND",
+      "3": "VCC",
+      "4": "SCK",
+      "5": "MOSI"
+    },
+    "mountingTabs": {
+      "6": "MP1",
+      "7": "MP2"
+    },
+    "pitchMm": 0.5,
+    "contact": "bottom",
+    "cableThicknessMm": 0.3,
+    "model": "ColorView_FPC_HC-FPC-05-10-5RLTAG.step",
+    "separateModuleMount": true
+  }
+}

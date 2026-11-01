@@ -67,3 +67,7 @@ Keep the top FPC relief smooth and free of burrs. Allow space for the cable and 
 ## Protective film
 
 The screen surface has a removable protective film. It can be peeled off before use.
+
+## CAD download
+
+Use the [Color View CAD libraries](../hardware/ColorView-Library/README.md) for symbols, header and mounting footprints, the separate FPC connector, and STEP assembly models.
