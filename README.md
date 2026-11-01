@@ -41,11 +41,11 @@ These are firmware layout ideas, not functions built into the display module. Av
 | Display | 1.33-inch, 128 × 128 pixels |
 | Colors | Black, white, red, green, blue, cyan, magenta, yellow |
 | Interface | SPI writes: SCK, MOSI, active-high CS; no MISO |
-| Reference connection | Regulated 3.3 V supply and 3.3 V logic |
+| Reference connection | VCC: regulated 3.3 V or 5 V; signals: 3.3 V logic |
 | Primary firmware audience | ZMK split-keyboard builders |
 | Reference controller | nice!nano v2 in the custom Helix integration |
 
-The 3.3 V connection describes the current reference setup; a guaranteed operating range and measured module power-consumption figures are not published yet. Read the [electrical notes](docs/hardware.md#power-and-validation) before integrating it.
+VCC supports regulated 3.3 V or 5 V, as confirmed by the module manufacturer. Use 3.3 V signal logic; the ZMK reference uses a 3.3 V supply. Measured module power-consumption figures are not published yet. Read the [electrical notes](docs/hardware.md#power-and-validation) before integrating it.
 
 ## Size, mounting, and connectors
 

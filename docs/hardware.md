@@ -36,7 +36,7 @@ These are **module-side pin numbers**, not a left-to-right view of the connector
 | --- | --- | --- | --- |
 | MOSI | 1 | 5 | Assigned SPI data output |
 | SCK | 2 | 4 | Assigned SPI clock output |
-| VCC_IN | 3 | 3 | Controlled, regulated 3.3 V in the reference configuration |
+| VCC_IN | 3 | 3 | Controlled, regulated 3.3 V or 5 V supply |
 | GND | 4 | 2 | Common ground on that keyboard half |
 | CS | 5 | 1 | Assigned active-high chip select |
 
@@ -48,11 +48,11 @@ These are **module-side pin numbers**, not a left-to-right view of the connector
 
 ## Power and validation
 
-The reference project supplies this module with regulated **3.3 V** and uses **3.3 V logic**. This is a development reference, not a qualified operating range. Successful operation in the project does not establish performance across all module batches, temperatures, or controller power supplies.
+**Module supply:** connect VCC to regulated **3.3 V or 5 V**, as confirmed by the module manufacturer. These are supported supply choices, not a statement of 5 V signal compatibility. The existing ZMK reference uses 3.3 V.
 
-Do not connect a raw battery, USB 5 V, or 5 V logic to this reference configuration. Use the supply requirements published for the purchased module revision.
+**Signal logic:** use **3.3 V** on SCK, MOSI and CS. Keep the nRF52840 controller and its GPIOs on their specified supply; a 5 V module supply must not feed 5 V into controller pins. Do not connect an unregulated battery directly to VCC.
 
-No validated module-only current, battery-life figure, or guaranteed operating range for the 3.3 V implementation is published here yet. Verify the actual module supply during startup, radio activity, LED switching, and low-battery operation.
+No validated module-only current or battery-life figure is published here yet. Check startup, sleep/wake and shared-load behavior in the final keyboard. Supply tolerances and environmental qualification are not specified by the two nominal supply choices.
 
 Use a suitable supply switch or the controller's supported peripheral-power output. A signal GPIO must not directly supply the module. Coordinate power control when LEDs and the display share a rail.
 
