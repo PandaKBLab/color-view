@@ -12,6 +12,10 @@ Color View是面向DIY键盘的显示模块，尺寸1.33英寸、分辨率128 ×
 
 **仓库进度：**当前为文档起步版。已有定制Helix键盘搭配nice!nano v2的Color View参考实现；本仓库尚未发布可复用的公共驱动包及可直接编译的键盘示例。
 
+## 屏幕配置工具
+
+[打开 Color View Studio](https://pandakblab.github.io/color-view/)，组合状态栏、按键图、动图和交互模块，实时预览 128 × 128 八色画面。网页可导出布局 JSON 和预览 PNG。ZMK 需要单独集成，参见 [ZMK 集成说明](docs/zmk.md)。
+
 ## 封装库下载
 
 - [嘉立创EDA库 ZIP](downloads/ColorView-EasyEDA-v0.2.0.zip?raw=true)

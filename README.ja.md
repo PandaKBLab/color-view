@@ -12,6 +12,10 @@ Color Viewは、自作キーボード向けの1.33インチ、128 × 128ピク�
 
 **公開状況：**本リポジトリはドキュメントの初期版です。独自Helixキーボードとnice!nano v2を組み合わせたColor Viewの実装例はありますが、再利用可能な公開ドライバーパッケージと、そのままビルドできるキーボード別サンプルは、まだ公開していません。
 
+## 画面レイアウトツール
+
+[Color View Studio を開く](https://pandakblab.github.io/color-view/)（中国語 UI）。ステータス、キーマップ、アニメーション、入力反応のモジュールを組み合わせ、128 × 128 ピクセル、8 色でプレビューできます。レイアウトは JSON、プレビューは PNG で保存できます。ZMK への組み込みは [ZMK 統合ガイド](docs/zmk.md)を参照してください。
+
 ## CADライブラリのダウンロード
 
 - [EasyEDA用ZIP](downloads/ColorView-EasyEDA-v0.2.0.zip?raw=true)

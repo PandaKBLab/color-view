@@ -12,6 +12,10 @@ Color View is a 1.33-inch, 128 × 128 Memory LCD module for DIY keyboards. It su
 
 **Repository status:** Documentation starter. A Color View reference integration exists for a custom Helix keyboard with nice!nano v2; a reusable public driver package and ready-to-build keyboard examples have not been published here yet.
 
+## Display layout tool
+
+[Open Color View Studio](https://pandakblab.github.io/color-view/) (Chinese interface). Combine status, keymap, animation, and interaction modules in a live 128 × 128, eight-color preview. Export the layout as JSON or the preview as PNG. See the [ZMK integration notes](docs/zmk.md) for firmware setup.
+
 ## CAD downloads
 
 - [EasyEDA library ZIP](downloads/ColorView-EasyEDA-v0.2.0.zip?raw=true)
