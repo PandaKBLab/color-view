@@ -53,7 +53,7 @@ static const enum pattern color_grid[2][4] = {
     {BLACK, WHITE, RED, GREEN},
     {BLUE, CYAN, MAGENTA, YELLOW},
 };
-BUILD_ASSERT(SIDE == FIXTURE_TEXT_SIDE);
+BUILD_ASSERT(SIDE == (int)FIXTURE_TEXT_SIDE);
 
 static bool com_high;
 static int64_t next_com;
