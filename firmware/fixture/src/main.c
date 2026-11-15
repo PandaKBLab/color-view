@@ -7,6 +7,8 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/util.h>
 
+#include "text_frames.h"
+
 enum {
     PIN_CS = 8,
     PIN_POWER = 13,
@@ -19,20 +21,40 @@ enum {
     COM_INTERVAL_MS = 500,
     POWER_SETTLE_MS = 20,
     DISCHARGE_MS = 1000,
-    SWAP_MS = 8000,
+    SWAP_MS = 5000,
     FRAME_MS = 1000,
+    HOLD_MS = 2000,
 };
 
 enum pattern {
-    BLACK = 0, RED = 1, GREEN = 2, BLUE = 4, WHITE = 7,
+    BLACK = 0, RED = 1, GREEN = 2, YELLOW = 3,
+    BLUE = 4, MAGENTA = 5, CYAN = 6, WHITE = 7,
     HORIZONTAL = 8, VERTICAL, CHECKER, INVERTED, MARKERS, MARKERS_MOVED,
+    READY, EIGHT_COLORS, FINISHED,
+};
+
+struct test_frame {
+    enum pattern pattern;
+    uint16_t duration_ms;
 };
 
 static const struct device *const port = DEVICE_DT_GET(DT_NODELABEL(gpio0));
-static const enum pattern frames[] = {
-    BLACK, WHITE, RED, GREEN, BLUE, GREEN | BLUE, RED | BLUE, RED | GREEN,
-    HORIZONTAL, VERTICAL, CHECKER, INVERTED, MARKERS, MARKERS_MOVED,
+static const struct test_frame frames[] = {
+    {READY, HOLD_MS},
+    {BLACK, FRAME_MS}, {WHITE, FRAME_MS}, {RED, FRAME_MS}, {GREEN, FRAME_MS},
+    {BLUE, FRAME_MS}, {CYAN, FRAME_MS}, {MAGENTA, FRAME_MS}, {YELLOW, FRAME_MS},
+    {EIGHT_COLORS, HOLD_MS},
+    {HORIZONTAL, FRAME_MS}, {VERTICAL, FRAME_MS},
+    {CHECKER, FRAME_MS}, {INVERTED, FRAME_MS},
+    {MARKERS, FRAME_MS}, {MARKERS_MOVED, FRAME_MS},
+    {FINISHED, HOLD_MS},
 };
+static const enum pattern color_grid[2][4] = {
+    {BLACK, WHITE, RED, GREEN},
+    {BLUE, CYAN, MAGENTA, YELLOW},
+};
+BUILD_ASSERT(SIDE == FIXTURE_TEXT_SIDE);
+
 static bool com_high;
 static int64_t next_com;
 
@@ -81,6 +103,14 @@ static void service_com(void)
 static uint8_t pixel(enum pattern pattern, unsigned x, unsigned y)
 {
     switch (pattern) {
+    case READY:
+    case FINISHED: {
+        const uint8_t (*mask)[FIXTURE_TEXT_ROW_BYTES] =
+            pattern == READY ? ready_text : finished_text;
+        return (mask[y][x / 8] & BIT(7 - x % 8)) ? BLACK : WHITE;
+    }
+    case EIGHT_COLORS:
+        return color_grid[y / (SIDE / 2)][x / (SIDE / 4)];
     case HORIZONTAL:
         return y % 2 ? WHITE : BLACK;
     case VERTICAL:
@@ -96,7 +126,7 @@ static uint8_t pixel(enum pattern pattern, unsigned x, unsigned y)
         if (x < 15 && y < 15) { return RED; }
         if (x >= 113 && y < 15) { return GREEN; }
         if (x < 15 && y >= 113) { return BLUE; }
-        if (x >= 113 && y >= 113) { return RED | GREEN; }
+        if (x >= 113 && y >= 113) { return YELLOW; }
         if ((y >= 43 && y < 77 && x >= 63 && x <= 65) ||
             (y >= 43 && y <= 61 && (x == 64 - (y - 43) || x == 64 + (y - 43)))) {
             return BLACK;
@@ -188,8 +218,8 @@ int main(void)
 
         int64_t deadline = k_uptime_get();
         for (unsigned i = 0; i < ARRAY_SIZE(frames); ++i) {
-            send_frame(frames[i]);
-            deadline += FRAME_MS;
+            send_frame(frames[i].pattern);
+            deadline += frames[i].duration_ms;
             wait_with_com(deadline);
         }
         send_command(4);
