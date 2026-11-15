@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Color View Studio · 显示配置</title>
+  <meta name="description" content="组合显示模块并实时预览 Color View 的 128 × 128 八色画面。">
+  <link rel="stylesheet" href="style.css">
+  <script defer src="demo-data.js"></script>
+  <script defer src="studio.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="top-inner">
+      <div class="brand"><span class="brand-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div><strong>Color View Studio</strong><span>显示配置</span></div></div>
+      <div class="top-actions"><button type="button" id="import-config" class="button">导入</button><button type="button" id="export-config" class="button primary">导出配置 <span aria-hidden="true">↓</span></button><input id="config-file" type="file" accept=".json,application/json" hidden></div>
+    </div>
+  </header>
+  <main>
+    <section class="intro">
+      <div><div class="eyebrow">COLOR VIEW / ZMK</div><h1>我的屏幕布局</h1><p>Sofle 示例配列 · 64 个可交互键位 · 左右屏独立配置</p></div>
+      <label class="board-select"><span>外设组合</span><select id="hardware"><option value="DD">左右双屏</option><option value="DB">左屏＋右轨迹球</option></select></label>
+    </section>
+    <div class="workspace">
+      <section class="panel settings" aria-labelledby="layout-title">
+        <div class="section-title"><h2 id="layout-title">布局配置</h2></div>
+        <div class="subhead">预设 <span id="preset-status"></span></div>
+        <div id="presets" class="presets">
+          <button type="button" data-preset="status"><span class="preset-thumb thumb-status" aria-hidden="true"></span><span><strong>日常状态</strong><small>连接、层名、修饰键</small></span></button>
+          <button type="button" data-preset="pixel"><span class="preset-thumb thumb-pixel" aria-hidden="true"></span><span><strong>像素互动</strong><small>按键触发方块鸡</small></span></button>
+          <button type="button" data-preset="keys"><span class="preset-thumb thumb-keys" aria-hidden="true"></span><span><strong>键位与外设</strong><small>本侧键位与动作提示</small></span></button>
+        </div>
+        <div class="subhead blocks-heading">画面模块 <span>固定宽 128 px</span></div>
+        <div class="height-budget"><progress id="height-meter" max="128" aria-label="已用画面高度"></progress><span id="height-text" aria-live="polite"></span></div>
+        <div class="module-tools"><button type="button" id="open-library" class="button primary">＋ 添加模块</button><button type="button" id="insert-spacer" class="button">插入空行</button></div>
+        <p class="module-hint">新增项目放在所选模块下方，使用 ↑ ↓ 调整顺序。</p>
+        <div id="modules" class="modules"></div>
+        <p id="empty-layout" class="module-hint" hidden>从模块库添加内容。</p>
+        <div id="module-options" class="module-options"></div>
+      </section>
+      <section class="panel preview" aria-labelledby="preview-title">
+        <div class="section-title"><div><h2 id="preview-title">屏幕预览</h2><span class="panel-meta">128 × 128 px · RGB 各 1 bit</span></div><div class="segmented" aria-label="显示侧"><button type="button" data-side="left">左屏</button><button type="button" data-side="right">右屏</button></div></div>
+        <div class="preview-stage">
+          <div class="display-bezel"><div class="bezel-mark">COLOR VIEW</div><canvas id="lcd" width="128" height="128" aria-label="128×128 Color View 实时预览" role="img"></canvas></div>
+        </div>
+        <div class="preview-controls">
+          <label><span>底色</span><select id="theme"><option value="light">白底</option><option value="dark">黑底</option></select></label>
+          <label><span>方向</span><select id="rotation"><option value="0">0°</option><option value="180">180°</option></select></label>
+          <button type="button" id="export-png" class="button" title="保存当前 128×128 像素画面">保存画面</button>
+        </div>
+        <div class="palette" aria-label="屏幕可用颜色"><span>原生 8 色</span><div id="palette"></div></div>
+      </section>
+      <section class="panel sim" aria-labelledby="sim-title">
+        <div class="section-title"><h2 id="sim-title">状态模拟</h2><span class="badge">浏览器</span></div>
+        <div class="fields">
+          <label><span>键盘输出</span><select id="endpoint"><option value="BLE">蓝牙</option><option value="USB">USB</option><option value="OFF">离线</option></select></label>
+          <label><span>蓝牙档位</span><select id="profile"><option value="1">档位 1</option><option value="2">档位 2</option><option value="3">档位 3</option><option value="4">档位 4</option><option value="5">档位 5</option></select></label>
+        </div>
+        <label class="battery"><span>电量 <output id="battery-value">78%</output></span><input type="range" id="battery" min="0" max="100" value="78"></label>
+        <div class="checks"><label><input type="checkbox" id="usb-power"> USB 供电</label><label><input type="checkbox" id="charging"> 正在充电</label></div>
+        <div class="divider"></div>
+        <label class="layer-select"><span>当前层</span><select id="layer"><option value="0">0 · QWERTY</option><option value="1">1 · Function</option><option value="2">2 · Layer 2</option><option value="3">3 · Layer 3</option><option value="4">4 · Layer 4</option><option value="5">5 · Layer 5</option><option value="6">6 · Layer 6</option><option value="7">7 · Layer 7</option></select></label>
+        <div class="subhead">修饰键与锁定</div>
+        <div id="modifiers" class="modifier-buttons">
+          <button type="button" data-mod="Ctrl">Ctrl</button><button type="button" data-mod="Shift">Shift</button><button type="button" data-mod="Alt">Alt</button><button type="button" data-mod="GUI">GUI</button>
+          <button type="button" data-lock="Caps">Caps</button><button type="button" data-lock="Num">Num</button>
+        </div>
+        <div class="divider"></div>
+        <div class="subhead">右侧旋钮</div>
+        <div class="encoder"><button type="button" data-device="VOL-" aria-label="旋钮逆时针">↶ <span>逆转</span></button><button type="button" data-device="MUTE">按压</button><button type="button" data-device="VOL+" aria-label="旋钮顺时针">↷ <span>顺转</span></button></div>
+        <div id="trackball" class="trackball" hidden>
+          <div class="subhead">右侧轨迹球 <span>网页模拟</span></div>
+          <div id="track-surface" tabindex="0" aria-label="轨迹球模拟区，使用方向键、拖动或滚轮"><span id="track-dot"></span></div>
+          <div class="track-actions"><button type="button" data-device="CLICK">点击</button><button type="button" id="scroll-mode" aria-pressed="false">滚动模式</button></div>
+        </div>
+      </section>
+    </div>
+    <section class="panel layout" aria-labelledby="keyboard-title">
+      <div class="section-title">
+        <div><h2 id="keyboard-title">Sofle 示例键位</h2><span class="panel-meta">点按键帽，或使用电脑键盘模拟输入</span></div>
+        <div class="keyboard-info"><span id="last-event" aria-live="polite">等待输入</span><label class="checkbox"><input type="checkbox" id="keyboard-capture" checked> 键盘输入</label></div>
+      </div>
+      <div class="board-wrap">
+        <div class="half"><div class="half-title"><strong>左手</strong><span>五向开关</span></div><div id="keyboard-left" class="keys-surface" role="group" aria-label="左手按键"></div></div>
+        <div class="half"><div class="half-title"><strong>右手</strong><span id="right-hw">旋钮</span></div><div id="keyboard-right" class="keys-surface" role="group" aria-label="右手按键"></div></div>
+      </div>
+    </section>
+    <footer><a href="https://github.com/PandaKBLab/color-view">Color View 项目文档</a><span>布局与素材在浏览器中处理 · JSON 用于保存和分享网页布局</span></footer>
+    <div id="toast" class="toast" role="status" hidden></div>
+    <input id="asset-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+    <dialog id="module-library" class="module-dialog" aria-labelledby="library-title">
+      <div class="dialog-heading"><h2 id="library-title">模块库</h2><form method="dialog"><button class="button" aria-label="关闭模块库">关闭</button></form></div>
+      <div class="module-tools"><label for="library-category" class="sr-only">模块分类</label><select id="library-category" autofocus><option value="all">全部分类</option></select><button type="button" id="new-module" class="button primary">＋ 新建模块</button></div>
+      <p id="library-message" class="module-message" role="status"></p>
+      <div id="library-entries" class="library-entries"></div>
+      <p id="library-empty" class="module-hint" hidden>此分类暂无模块。</p>
+    </dialog>
+    <dialog id="module-builder" class="module-dialog" aria-labelledby="builder-title">
+      <div class="dialog-heading"><h2 id="builder-title">新建模块</h2><button type="button" id="builder-back" class="button">返回模块库</button></div>
+      <form id="builder-form">
+        <label class="builder-field">名称 <input id="builder-name" type="text" maxlength="24" required autofocus></label>
+        <label class="builder-field">内容类型 <select id="builder-type" required></select></label>
+        <label class="builder-field">高度（px） <input id="builder-height" type="number" min="1" max="128" step="1" required></label>
+        <div id="builder-options" class="module-options"></div>
+        <p id="builder-error" class="module-message" role="alert"></p>
+        <button class="button primary" type="submit">保存到模块库</button>
+      </form>
+    </dialog>
+  </main>
+</body>
+</html>

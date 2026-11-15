@@ -1,3 +1,0 @@
-(sym_lib_table
- (lib (name "ColorView")(type "KiCad")(uri "${KIPRJMOD}/ColorView-Library/kicad/ColorView.kicad_sym")(options "")(descr "Color View symbols"))
-)

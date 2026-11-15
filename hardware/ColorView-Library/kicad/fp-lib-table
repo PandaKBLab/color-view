@@ -1,3 +1,0 @@
-(fp_lib_table
- (lib (name "ColorView")(type "KiCad")(uri "${KIPRJMOD}/ColorView-Library/kicad/ColorView.pretty")(options "")(descr "Color View module footprints"))
-)
