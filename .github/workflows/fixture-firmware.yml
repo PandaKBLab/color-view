@@ -20,9 +20,11 @@ jobs:
       - name: Prepare build workspace
         run: |
           west init -l color-view/firmware/fixture
+          cd color-view/firmware
           west update --fetch-opt=--filter=blob:none
       - name: Build for nice!nano v2
-        run: west build -b nice_nano_v2 -s color-view/firmware/fixture -d build -- -DBOARD_ROOT="$PWD/zmk/app"
+        working-directory: color-view/firmware
+        run: west build -b nice_nano_v2 -s fixture -d "$GITHUB_WORKSPACE/build" -- -DBOARD_ROOT="$PWD/zmk/app"
       - name: Verify and name the UF2
         run: |
           python3 color-view/firmware/fixture/check_uf2.py build/zephyr/zephyr.uf2
