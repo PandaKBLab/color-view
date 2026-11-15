@@ -1,0 +1,11 @@
+mainmenu "Color View fixture"
+
+# The shared nice!nano v2 board defaults reference these ZMK options.
+# In this standalone application they have no dependencies or side effects.
+config ZMK_BLE
+    bool "ZMK Bluetooth configuration compatibility"
+
+config ZMK_USB
+    bool "ZMK USB configuration compatibility"
+
+source "Kconfig.zephyr"

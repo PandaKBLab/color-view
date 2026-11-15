@@ -1,0 +1,35 @@
+name: Build Color View fixture firmware
+on:
+  push:
+    branches: [fixture-test-firmware]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container: zmkfirmware/zmk-build-arm:3.5-branch
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: color-view
+          persist-credentials: false
+      - name: Prepare build workspace
+        run: |
+          west init -l color-view/firmware/fixture
+          west update --fetch-opt=--filter=blob:none
+      - name: Build for nice!nano v2
+        run: west build -b nice_nano_v2 -s color-view/firmware/fixture -d build -- -DBOARD_ROOT="$PWD/zmk/app"
+      - name: Verify and name the UF2
+        run: |
+          python3 color-view/firmware/fixture/check_uf2.py build/zephyr/zephyr.uf2
+          mkdir -p artifacts
+          cp build/zephyr/zephyr.uf2 artifacts/color-view-fixture-nice_nano_v2.uf2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: color-view-fixture-nice_nano_v2
+          path: artifacts/color-view-fixture-nice_nano_v2.uf2
+          if-no-files-found: error
