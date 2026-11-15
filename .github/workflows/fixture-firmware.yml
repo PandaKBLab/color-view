@@ -27,6 +27,8 @@ jobs:
         run: |
           mkdir -p fixture-boards/boards/arm
           cp -R zmk/app/boards/arm/nice_nano fixture-boards/boards/arm/
+          # The standalone fixture does not use ZMK services or a settings backend.
+          sed -i -E '/^CONFIG_(ZMK_BLE|ZMK_USB|SETTINGS_NVS)=y$/d' fixture-boards/boards/arm/nice_nano/nice_nano_v2_defconfig
           west build -b nice_nano_v2 -s fixture -d "$GITHUB_WORKSPACE/build" -- -DBOARD_ROOT="$PWD/fixture-boards"
       - name: Verify and name the UF2
         run: |
