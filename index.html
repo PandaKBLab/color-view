@@ -5,17 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Color View Studio · 显示配置</title>
   <meta name="description" content="组合显示模块并实时预览 Color View 的 128 × 128 八色画面。">
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=3">
+  <script defer src="translations.js?v=3"></script>
   <script defer src="demo-data.js?v=2"></script>
   <script defer src="zmk-layout.js?v=2"></script>
   <script defer src="zmk-project.js?v=2"></script>
-  <script defer src="studio.js?v=2"></script>
+  <script defer src="studio.js?v=3"></script>
 </head>
 <body>
   <header class="top">
     <div class="top-inner">
       <div class="brand"><span class="brand-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div><strong>Color View Studio</strong><span>显示配置</span></div></div>
-      <div class="top-actions"><button type="button" id="import-config" class="button">导入布局</button><button type="button" id="export-config" class="button primary">导出 ZMK 布局</button><input id="config-file" type="file" accept=".json,application/json" hidden></div>
+      <div class="top-actions"><select id="language" aria-label="语言"></select><button type="button" id="import-config" class="button">导入布局</button><button type="button" id="export-config" class="button primary">导出 ZMK 布局</button><input id="config-file" type="file" accept=".json,application/json" hidden></div>
     </div>
   </header>
   <main>
@@ -24,19 +25,19 @@
     </section>
     <div class="workspace">
       <section class="panel settings" aria-labelledby="layout-title">
-        <div class="section-title"><h2 id="layout-title">布局与模块</h2><span class="badge" id="editing-side"></span></div>
-        <div class="subhead">预设 <span id="preset-status"></span></div>
-        <div id="presets" class="presets">
-          <button type="button" data-preset="status"><span class="preset-thumb thumb-status" aria-hidden="true"></span><span><strong>日常状态</strong><small>连接、层名、修饰键</small></span></button>
-          <button type="button" data-preset="pixel"><span class="preset-thumb thumb-pixel" aria-hidden="true"></span><span><strong>像素互动</strong><small>按键触发方块鸡</small></span></button>
-          <button type="button" data-preset="keys"><span class="preset-thumb thumb-keys" aria-hidden="true"></span><span><strong>键位与外设</strong><small>本侧键位与动作提示</small></span></button>
-        </div>
-        <div class="subhead blocks-heading">画面模块 <span>固定宽 128 px</span></div>
-        <div class="height-budget"><progress id="height-meter" max="128" aria-label="已用画面高度"></progress><span id="height-text" aria-live="polite"></span></div>
-        <div class="module-tools"><button type="button" id="open-library" class="button primary">＋ 添加模块</button><button type="button" id="insert-spacer" class="button">插入空行</button></div>
+        <div class="section-title"><h2 id="layout-title">布局与模块</h2></div>
+        <div id="side-editors" class="side-editors"></div>
         <p class="module-hint">选择模块后可上移、下移或删除。新增内容插入所选模块下方。</p>
-        <div id="modules" class="modules"></div>
-        <p id="empty-layout" class="module-hint" hidden>从模块库添加内容。</p>
+        <template id="side-editor-template">
+          <article class="side-editor">
+            <div class="side-editor-heading"><h3 data-part="side-title"></h3><button type="button" data-part="png" class="button" aria-label="保存 PNG">PNG</button></div>
+            <label class="editor-field">预设<select data-part="preset"><option value="custom" disabled>自定义</option><option value="status">日常状态</option><option value="pixel">像素互动</option><option value="keys">键位与外设</option></select></label>
+            <div class="editor-fields"><label class="editor-field">底色<select data-part="theme"><option value="dark">黑底</option><option value="light">白底</option></select></label><label class="editor-field">方向<select data-part="rotation"><option value="0">0°</option><option value="180">180°</option></select></label></div>
+            <div class="height-budget"><progress data-part="height-meter" max="128" aria-label="已用画面高度"></progress><span data-part="height-text"></span></div>
+            <div class="module-tools"><button type="button" data-part="open-library" class="button primary">添加模块</button><button type="button" data-part="insert-spacer" class="button">插入空行</button></div>
+            <div data-part="modules" class="modules"></div><p data-part="empty-layout" class="module-hint" hidden>从模块库添加内容。</p>
+          </article>
+        </template>
       </section>
       <section class="panel preview" aria-labelledby="preview-title">
         <div class="section-title"><h2 id="preview-title">双屏预览</h2><span class="panel-meta">128 × 128 px / 屏</span></div>
@@ -52,16 +53,11 @@
             <button type="button" id="off-right" class="off-screen" data-side="right" hidden>右屏已关闭</button>
           </article>
         </div>
-        <div class="preview-controls">
-          <label><span>底色</span><select id="theme"><option value="light">白底</option><option value="dark">黑底</option></select></label>
-          <label><span>方向</span><select id="rotation"><option value="0">0°</option><option value="180">180°</option></select></label>
-          <button type="button" id="export-png" class="button">保存所选屏 PNG</button>
-        </div>
         <div class="palette" aria-label="屏幕可用颜色"><span>原生 8 色</span><div id="palette"></div></div>
       </section>
       <section class="panel inspector" aria-labelledby="inspector-title">
         <div class="section-title"><h2 id="inspector-title">模块设置</h2></div>
-        <p id="inspector-hint" class="module-hint">点击画面或左侧列表中的模块。</p>
+        <p id="inspector-hint" class="module-hint">点击预览或布局列表中的模块。</p>
         <div id="inspector-selection" hidden><div class="subhead" id="selected-title"></div><div id="selected-actions" class="module-tools"></div><div id="module-options" class="module-options"></div></div>
       </section>
       <section class="panel sim" aria-labelledby="sim-title">
@@ -72,6 +68,8 @@
         </div>
         <label class="battery"><span>电量 <output id="battery-value">78%</output></span><input type="range" id="battery" min="0" max="100" value="78"></label>
         <div class="checks"><label><input type="checkbox" id="usb-power"> USB 供电</label><label><input type="checkbox" id="charging"> 正在充电</label></div>
+        <div class="typing-sim"><button type="button" id="simulate-key" class="button">模拟按键</button><output id="wpm-value">0 WPM</output></div>
+        <p class="module-hint">每次点击模拟一个字符。WPM 统计最近 60 秒。</p>
         <div class="divider"></div>
         <label class="layer-select"><span>当前层</span><select id="layer"></select></label>
         <div class="subhead">修饰键与锁定</div>
@@ -100,7 +98,12 @@
         <label>配列 <select id="keymap-layout" disabled><option value="auto">自动匹配</option><option value="grid">顺序网格</option><option value="sofle">Sofle 示例</option><option value="physical">物理配列</option></select></label>
         <button type="button" id="reset-keymap" class="button" hidden>恢复示例</button>
       </div>
-      <p class="module-hint">键值和层从 .keymap 读取。需要真实位置时，可追加含 <code>key_physical_attrs</code> 的 .dtsi。文件在浏览器中处理。</p>
+      <p class="module-hint">导入 .keymap 读取键值和层。可追加含 key_physical_attrs 的 .dtsi 获取实际位置。文件在浏览器中处理。</p>
+      <div class="key-layout"><h3>键位与外设</h3><div class="keymap-tools">
+        <label>显示方式 <select id="key-display"><option value="split">双屏分别显示本侧</option><option value="single">单屏显示两半键盘</option></select></label>
+        <label id="key-target-wrap" hidden>目标屏 <select id="key-target"><option value="left">左屏</option><option value="right">右屏</option></select></label>
+        <button type="button" id="apply-key-display" class="button">应用键位预设</button>
+      </div><p class="module-hint">应用后会替换目标屏的模块。单屏模式保留另一屏的其他内容。</p></div>
       <div class="board-wrap">
         <div class="half"><div class="half-title"><strong>左手</strong><span id="left-hw">五向开关</span></div><div id="keyboard-left" class="keys-surface" role="group" aria-label="左手按键"></div></div>
         <div class="half"><div class="half-title"><strong>右手</strong><span id="right-hw">旋钮</span></div><div id="keyboard-right" class="keys-surface" role="group" aria-label="右手按键"></div></div>

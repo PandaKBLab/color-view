@@ -37,9 +37,9 @@ const OPTIONS = {
         battery:["电量图标",{percent:"百分比",gauge:"电池格",both:"电池格＋百分比",none:"隐藏"}],
         batteryColor:["电量颜色",{auto:"跟随模块文字",...COLOR_LABELS}],
         power:["供电与充电",{text:"PWR / CHG",icons:"插头 / 闪电",none:"隐藏"}]},
-    keys:{keys:["键位范围",{local:"本侧",all:"双侧"}],keyLayer:["键位层",{active:"跟随当前层",base:"固定基础层"}]},
-    sprite:{animation:["播放方式",{key:"按键触发",loop:"循环",still:"静态"}]},
-    asset:{animation:["播放方式",{key:"按键触发",loop:"循环",still:"静态"}]},
+    keys:{keys:["键位范围",{local:"本侧",all:"两半键盘"}],keyLayer:["键位层",{active:"跟随当前层",base:"固定基础层"}]},
+    sprite:{animation:["播放方式",{loop:"循环",key:"按键触发",still:"静态"}]},
+    asset:{animation:["播放方式",{loop:"循环",key:"按键触发",still:"静态"}]},
 };
 const MODIFIERS = ["Ctrl", "Shift", "Alt", "GUI", "Caps", "Num"];
 const LAYERS = ["QWERTY", "FUNCTION", "LAYER 2", "LAYER 3", "LAYER 4", "LAYER 5", "LAYER 6", "LAYER 7"];
@@ -52,7 +52,7 @@ function createModule(type, values = {}) {
     const template = TYPES[type];
     const height = values.height ?? template.height;
     if (!Number.isInteger(height) || height < template.min || height > SIZE) {
-        throw Error(`${template.name}高度须为 ${template.min}–${SIZE} px`);
+        throw Error(t("可设高度为 {min}–{max} px",{min:template.min,max:SIZE}));
     }
     const name = type === "spacer" ? template.name : String(values.name ?? template.name).trim().slice(0,24);
     const module = {type, name:name || template.name, height};
@@ -71,7 +71,7 @@ const totalHeight = modules => modules.reduce((total,module) => total + module.h
 function preset(name) {
     const content = {status:"layer",pixel:"sprite",keys:"keys"};
     const modules = [createModule("status"), createModule(content[name],{height:88}), createModule("mods")];
-    return {preset:name, theme:name === "pixel" ? "dark" : "light", rotation:0, enabled:true, modules};
+    return {preset:name, theme:"dark", rotation:0, enabled:true, modules};
 }
 
 function defaultConfig() {
@@ -131,7 +131,7 @@ let geometry;
 const state = {
     endpoint:"BLE", profile:1, battery:78, usb:false, charge:false, layer:0, held:new Set(),
     manual:new Set(), caps:false, num:false, last:"", device:"", deviceUntil:0, kicked:0,
-    scroll:false, recent:[], flashed:new Map(),
+    scroll:false, recent:[], flashed:new Map(), simulated:0,
 };
 const assets = new WeakMap();
 let toastTimeout;
@@ -145,7 +145,7 @@ pen.imageSmoothingEnabled = false;
 function note(text) {
     const el = by("toast");
     clearTimeout(toastTimeout);
-    el.textContent = text;
+    el.textContent = t(text);
     el.hidden = false;
     toastTimeout = setTimeout(() => { el.hidden = true; }, 3000);
 }
@@ -154,8 +154,8 @@ function save() {
     try { localStorage.setItem(STORAGE, JSON.stringify(config)); } catch {}
 }
 
-function update(key, value) {
-    const s = settings();
+function update(hand,key,value) {
+    const s = config.screens[hand];
     if (s[key] === value) return;
     s[key] = value;
     save(); refreshControls();
@@ -198,7 +198,7 @@ function paletteOptions() {
     COLORS.forEach((color,i) => {
         const dot = document.createElement("i");
         dot.style.backgroundColor = color;
-        dot.title = names[i];
+        dot.title = t(names[i]);
         by("palette").append(dot);
     });
 }
@@ -327,7 +327,7 @@ function drawWave(y,h,fg,now) {
     }
     const max = Math.max(1,...samples);
     const bottom = y + h - 3;
-    bitmap("WPM "+Math.round(state.recent.length/5),5,y+2,1,fg);
+    bitmap("WPM "+wpm(),5,y+2,1,fg);
     paint(5,bottom,118,1,fg);
     const levels = samples.map(count => bottom - Math.round(count * (h-12) / max));
     for (let index = 1; index < levels.length; index++) {
@@ -418,7 +418,7 @@ function drawScreen(now,screen) {
             if (TYPES[type].category === "animation") drawAnimation(module,y,h,fg,now);
             if (type === "layer") drawValue(y,h,fg,"LAYER "+state.layer,pixelText(geometry.layerNames[state.layer] || "","LAYER "+state.layer));
             if (type === "last") drawValue(y,h,fg,"LAST KEY",pixelText(state.last || "-","-"));
-            if (type === "wpm") drawValue(y,h,fg,"WPM",String(Math.round(state.recent.length/5)));
+            if (type === "wpm") drawValue(y,h,fg,"WPM",String(wpm()));
             if (type === "wave") drawWave(y,h,fg,now);
             pen.restore();
         }
@@ -435,13 +435,15 @@ function drawScreens(now) {
     for (const hand of SIDES) drawScreen(now,hand);
 }
 
+const wpm = () => Math.round(state.recent.length/5);
+
 function optionSelect(label, key, choices, value, onChange) {
     const field = document.createElement("label");
     field.className = "option-row";
-    field.textContent = label;
+    field.textContent = t(label);
     const select = document.createElement("select");
     select.id = "option-" + key;
-    for (const [item, name] of Object.entries(choices)) select.add(new Option(name,item));
+    for (const [item, name] of Object.entries(choices)) select.add(new Option(t(name),item));
     select.value = value;
     select.onchange = () => onChange(select.value,select.id);
     field.append(select);
@@ -451,8 +453,8 @@ function optionSelect(label, key, choices, value, onChange) {
 function toolButton(label, action, title = label) {
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = label;
-    button.setAttribute("aria-label",title);
+    button.textContent = t(label);
+    button.setAttribute("aria-label",t(title));
     button.onclick = action;
     return button;
 }
@@ -461,7 +463,7 @@ function insertModule(template) {
     const modules = settings().modules;
     const available = SIZE - totalHeight(modules);
     if (template.height > available) {
-        const message = "只剩 " + available + " px。请先缩短或移除其他模块，再添加 " + template.height + " px 的" + template.name + "。";
+        const message = t("剩余 {available} px，{module} 需要 {height} px。",{available,module:t(template.name),height:template.height});
         note(message);
         by("library-message").textContent = message;
         return false;
@@ -473,28 +475,30 @@ function insertModule(template) {
     return true;
 }
 
-function sectionRows(modules) {
+function sectionRows(modules,hand) {
     return modules.map((module,index) => {
         const row = document.createElement("div");
         row.className = "module";
-        row.dataset.selected = String(index === selectedIndex);
-        const field = toolButton(module.name,() => selectModule(side,index,"module-"+index),"编辑" + module.name);
-        field.id = "module-" + index;
+        const selected = hand === side && index === selectedIndex;
+        row.dataset.selected = String(selected);
+        const id = "module-"+hand+"-"+index;
+        const field = toolButton(module.name,() => selectModule(hand,index,id),t("编辑 {module}",{module:t(module.name)}));
+        field.id = id;
         field.className = "module-select";
-        field.setAttribute("aria-pressed",String(index === selectedIndex));
+        field.setAttribute("aria-pressed",String(selected));
         const meta = document.createElement("small");
         const category = CATEGORIES[TYPES[module.type].category];
-        meta.textContent = category ? category + " · " + module.height + " px" : module.height + " px";
+        meta.textContent = category ? t(category) + " · " + module.height + " px" : module.height + " px";
         field.append(meta);
         const actions = document.createElement("div");
         actions.className = "move";
         for (const [delta,symbol] of [[-1,"↑"],[1,"↓"]]) {
             const next = index + delta;
-            const move = toolButton(symbol,() => moveModule(index,delta),(delta < 0 ? "上移" : "下移") + module.name);
+            const move = toolButton(symbol,() => moveModule(hand,index,delta),t(delta < 0 ? "上移 {module}" : "下移 {module}",{module:t(module.name)}));
             move.disabled = next < 0 || next >= modules.length;
             actions.append(move);
         }
-        actions.append(toolButton("×",() => removeModule(index),"移除" + module.name));
+        actions.append(toolButton("×",() => removeModule(hand,index),t("删除 {module}",{module:t(module.name)})));
         row.append(field,actions);
         return row;
     });
@@ -506,28 +510,31 @@ function selectModule(hand,index,focus) {
     refreshControls(focus);
 }
 
-function moveModule(index,delta,fromPreview=false) {
-    const modules = settings().modules, next = index + delta;
+function moveModule(hand,index,delta,fromPreview=false) {
+    const modules = config.screens[hand].modules, next = index + delta;
     if (!modules[next]) return;
     [modules[index],modules[next]] = [modules[next],modules[index]];
+    side = hand;
     selectedIndex = next;
-    layoutChanged(fromPreview ? "hit-"+side+"-"+next : "module-"+next);
+    layoutChanged((fromPreview ? "hit-" : "module-")+hand+"-"+next);
 }
 
-function removeModule(index,fromPreview=false) {
-    const modules = settings().modules;
+function removeModule(hand,index,fromPreview=false) {
+    const modules = config.screens[hand].modules;
+    if (side !== hand) selectedIndex = index;
+    side = hand;
     modules.splice(index,1);
     if (selectedIndex > index) selectedIndex--;
     if (selectedIndex >= modules.length) selectedIndex = modules.length-1;
-    layoutChanged(selectedIndex < 0 ? "open-library" : (fromPreview ? "hit-"+side+"-" : "module-")+selectedIndex);
+    layoutChanged(selectedIndex < 0 ? "open-library-"+hand : (fromPreview && settings().enabled ? "hit-" : "module-")+hand+"-"+selectedIndex);
 }
 
 function screenHotspots(hand) {
     const screen = config.screens[hand];
     let y = 0;
     return screen.enabled ? screen.modules.map((module,index) => {
-        const name = SIDE_LABEL[hand]+" · "+module.name;
-        const button = toolButton("",() => selectModule(hand,index,button.id),"编辑"+name);
+        const name = t(SIDE_LABEL[hand])+" · "+t(module.name);
+        const button = toolButton("",() => selectModule(hand,index,button.id),t("编辑 {module}",{module:name}));
         button.id = "hit-"+hand+"-"+index;
         button.title = name + " · " + module.height + " px";
         button.setAttribute("aria-pressed",String(hand === side && index === selectedIndex));
@@ -542,13 +549,13 @@ function moduleOptions(module, maxHeight) {
     if (!module) return [];
     const heightRow = document.createElement("label");
     heightRow.className = "option-row";
-    heightRow.textContent = "高度（px）";
+    heightRow.textContent = t("高度（px）");
     const height = document.createElement("input");
     Object.assign(height, {id:"selected-height",type:"number",step:1,required:true,
         min:TYPES[module.type].min,max:maxHeight,value:module.height});
     height.onchange = () => {
         if (!height.validity.valid) {
-            note("可设高度为 " + height.min + "–" + height.max + " px");
+            note(t("可设高度为 {min}–{max} px",{min:height.min,max:height.max}));
             height.value = module.height;
             return;
         }
@@ -571,7 +578,7 @@ function moduleOptions(module, maxHeight) {
     if (module.type === "asset") {
         const row = document.createElement("div");
         row.className = "option-row";
-        row.textContent = assets.has(module) ? "素材已加载" : "待选择素材";
+        row.textContent = t(assets.has(module) ? "素材已加载" : "待选择素材");
         const button = toolButton("选择素材",() => {
             assetTarget = module;
             by("asset-file").click();
@@ -580,47 +587,50 @@ function moduleOptions(module, maxHeight) {
         row.append(button);
         options.push(row);
     }
+    if (TYPES[module.type].category === "animation" && module.animation === "key") {
+        const play = toolButton("预览播放",() => { state.kicked = performance.now(); });
+        play.className = "button";
+        options.push(play);
+    }
     return options;
 }
 
 function refreshControls(focus) {
     const s = settings();
-    by("theme").value = s.theme;
-    by("rotation").value = String(s.rotation);
-    by("editing-side").textContent = SIDE_LABEL[side];
-    by("preset-status").textContent = s.preset === "custom" ? "自定义" : "";
     by("track-toggle").checked = config.trackball;
     by("trackball").hidden = !config.trackball;
-    by("export-png").disabled = !s.enabled;
-    if (SIDES.some(hand => config.screens[hand].enabled)) {
-        by("preview-title").textContent = SIDES.every(hand => config.screens[hand].enabled) ? "双屏预览" : "单屏预览";
-    } else by("preview-title").textContent = "屏幕预览";
-    each("[data-preset]").forEach(b => b.setAttribute("aria-pressed",String(s.preset === b.dataset.preset)));
+    const enabledCount = SIDES.filter(hand => config.screens[hand].enabled).length;
+    by("preview-title").textContent = t(["屏幕预览","单屏预览","双屏预览"][enabledCount]);
     each("[data-side]").forEach(b => {
         b.setAttribute("aria-pressed",String(side === b.dataset.side));
     });
     for (const hand of SIDES) {
-        const enabled = config.screens[hand].enabled;
+        const screen = config.screens[hand];
+        const enabled = screen.enabled;
         by("preview-"+hand).dataset.editing = String(hand === side);
         by("active-"+hand).hidden = !enabled;
         by("off-"+hand).hidden = enabled;
         document.querySelector('[data-screen-power="'+hand+'"]').checked = enabled;
         by("hotspots-"+hand).replaceChildren(...screenHotspots(hand));
+        by("side-title-"+hand).textContent = t(SIDE_LABEL[hand]);
+        by("editor-"+hand).dataset.editing = String(hand === side);
+        by("png-"+hand).disabled = !enabled;
+        for (const field of ["preset","theme","rotation"]) by(field+"-"+hand).value = String(screen[field]);
+        const height = totalHeight(screen.modules);
+        by("height-text-"+hand).textContent = t("已用 {used} / 128 px",{used:height});
+        by("height-meter-"+hand).value = height;
+        by("modules-"+hand).replaceChildren(...sectionRows(screen.modules,hand));
+        by("empty-layout-"+hand).hidden = screen.modules.length > 0;
     }
-    const used = totalHeight(s.modules);
-    const remaining = SIZE - used;
-    by("height-text").textContent = "已用 " + used + " / 128 px · 剩余 " + remaining + " px";
-    by("height-meter").value = used;
-    by("modules").replaceChildren(...sectionRows(s.modules));
-    by("empty-layout").hidden = s.modules.length > 0;
+    const remaining = SIZE - totalHeight(s.modules);
     const module = s.modules[selectedIndex];
     by("inspector-hint").hidden = Boolean(module);
     by("inspector-selection").hidden = !module;
     if (module) {
-        by("selected-title").textContent = `${SIDE_LABEL[side]} · ${module.name}`;
-        const up = toolButton("上移",() => moveModule(selectedIndex,-1,true));
-        const down = toolButton("下移",() => moveModule(selectedIndex,1,true));
-        const remove = toolButton("删除",() => removeModule(selectedIndex,true));
+        by("selected-title").textContent = `${t(SIDE_LABEL[side])} · ${t(module.name)}`;
+        const up = toolButton("上移",() => moveModule(side,selectedIndex,-1,true));
+        const down = toolButton("下移",() => moveModule(side,selectedIndex,1,true));
+        const remove = toolButton("删除",() => removeModule(side,selectedIndex,true));
         up.disabled = selectedIndex === 0;
         down.disabled = selectedIndex === s.modules.length-1;
         [up,down,remove].forEach(button => { button.className = "button"; });
@@ -633,6 +643,7 @@ function refreshControls(focus) {
 }
 
 function renderLibrary() {
+    by("library-title").textContent = t("模块库")+" · "+t(SIDE_LABEL[side]);
     const category = by("library-category").value;
     const builtIn = Object.keys(TYPES).filter(type => type !== "spacer").map(type => createModule(type));
     const entries = [...builtIn.map(module => ({module,saved:false})), ...config.library.map(module => ({module,saved:true}))];
@@ -644,16 +655,16 @@ function renderLibrary() {
         row.className = "library-row";
         const label = document.createElement("div");
         const name = document.createElement("strong");
-        name.textContent = module.name;
+        name.textContent = t(module.name);
         const meta = document.createElement("small");
-        meta.textContent = CATEGORIES[group] + " · 128 × " + module.height + " px" + (saved ? " · 自建" : "");
+        meta.textContent = t(CATEGORIES[group]) + " · 128 × " + module.height + " px" + (saved ? " · " + t("自定义") : "");
         label.append(name,meta);
         const add = toolButton("添加",() => {
             if (insertModule(module)) {
                 by("module-library").close();
-                by("module-" + selectedIndex)?.focus();
+                by("module-"+side+"-"+selectedIndex)?.focus();
             }
-        },"添加" + module.name);
+        },t("添加 {module}",{module:t(module.name)}));
         add.className = "button";
         row.append(label,add);
         if (saved) {
@@ -662,7 +673,7 @@ function renderLibrary() {
                 save();
                 renderLibrary();
                 by("library-category").focus();
-            },"从模块库移除" + module.name);
+            },t("删除 {module}",{module:t(module.name)}));
             remove.className = "button";
             row.append(remove);
         }
@@ -675,16 +686,20 @@ function renderLibrary() {
 
 const builderType = by("builder-type");
 const libraryFilter = by("library-category");
-for (const [category,label] of Object.entries(CATEGORIES)) {
-    libraryFilter.add(new Option(label,category));
-    const group = document.createElement("optgroup");
-    group.label = label;
-    for (const [type,template] of Object.entries(TYPES)) {
-        if (template.category === category) group.append(new Option(template.name,type));
+function populateLibraryMenus() {
+    libraryFilter.replaceChildren(new Option(t("全部分类"),"all"));
+    builderType.replaceChildren();
+    for (const [category,label] of Object.entries(CATEGORIES)) {
+        libraryFilter.add(new Option(t(label),category));
+        const group = document.createElement("optgroup");
+        group.label = t(label);
+        for (const [type,template] of Object.entries(TYPES)) {
+            if (template.category === category) group.append(new Option(t(template.name),type));
+        }
+        builderType.append(group);
     }
-    builderType.append(group);
+    libraryFilter.add(new Option(t("自建模块"),"custom"));
 }
-libraryFilter.add(new Option("自建模块","custom"));
 libraryFilter.onchange = renderLibrary;
 
 let builderDraft;
@@ -701,14 +716,17 @@ function initBuilder() {
 }
 
 builderType.onchange = initBuilder;
-by("open-library").onclick = () => {
+function openLibrary(hand) {
+    if (side !== hand) selectModule(hand,-1);
     libraryFilter.value = "all";
     renderLibrary();
     by("module-library").showModal();
-};
-by("insert-spacer").onclick = () => {
+}
+
+function insertSpacer(hand) {
+    if (side !== hand) selectModule(hand,-1);
     if (insertModule(createModule("spacer"))) by("selected-height")?.focus();
-};
+}
 by("new-module").onclick = () => {
     by("module-library").close();
     by("builder-form").reset();
@@ -733,7 +751,7 @@ by("builder-form").onsubmit = e => {
         libraryFilter.value = "custom";
         renderLibrary();
         by("module-library").showModal();
-    } catch (error) { by("builder-error").textContent = error.message; }
+    } catch (error) { by("builder-error").textContent = t(error.message); }
 };
 
 const keyNodes = new Map();
@@ -780,8 +798,8 @@ function createKeyboard() {
 function renderKeyLabels() {
     for (const [id,button] of keyNodes) {
         const label = binding(id);
-        button.textContent = !config.keymap && id === 62 ? "中" : !config.keymap && id === 63 ? "●" : label;
-        button.title = `位置 ${id} · ${label}`;
+        button.textContent = !config.keymap && id === 62 ? "◆" : !config.keymap && id === 63 ? "●" : label;
+        button.title = t("位置 {id} · {label}",{id,label});
         button.setAttribute("aria-label",button.title);
     }
 }
@@ -800,7 +818,7 @@ function press(id) {
     state.held.add(id);
     state.last = label;
     state.kicked = performance.now();
-    if (/^[A-Z0-9]$/.test(label)) state.recent.push(state.kicked);
+    if (/^[A-Z0-9]$/i.test(label)) state.recent.push(state.kicked);
     if (label === "Caps") state.caps = !state.caps;
     const row = ZmkLayout.binding(config.keymap,state.layer,id);
     const target = row?.parameters?.match(/^\d+$/) ? Number(row.parameters) : -1;
@@ -809,7 +827,7 @@ function press(id) {
         setLayer(config.keymap ? target : 1);
     }
     if (geometry.kind === "sofle-demo" && id >= 58) peripheral(["↑","↓","←","→","ENTER","MUTE"][id-58]);
-    else by("last-event").textContent = "按键 "+label;
+    else showInput("按键 {label}",label);
 }
 
 function release(id) {
@@ -826,7 +844,12 @@ function peripheral(event) {
     state.deviceUntil = performance.now()+1000;
     state.kicked = performance.now();
     state.last = event;
-    by("last-event").textContent = "外设 "+event;
+    showInput("外设 {label}",event);
+}
+
+function showInput(key,label) {
+    state.input = {key,label};
+    by("last-event").textContent = t(key,{label});
 }
 
 function keyCode(name,hand) {
@@ -851,9 +874,12 @@ function syncKeymapControls() {
     layout.querySelector('option[value="physical"]').disabled = !keymap?.physical;
     layout.querySelector('option[value="sofle"]').disabled = ![58,64].includes(geometry.keys.length);
     const shortLayers = keymap?.layers.filter(layer => layer.sourceBindingCount < geometry.keys.length).length || 0;
-    by("keymap-info").textContent = `${keymap ? keymap.file + " · " : ""}${modes[geometry.kind]} · ${geometry.keys.length} 键${keymap ? " · "+keymap.layers.length+" 层" : ""}${shortLayers ? " · "+shortLayers+" 层末尾有空位" : ""}`;
-    by("left-hw").textContent = geometry.kind === "sofle-demo" && geometry.keys.length === 64 ? "五向开关" : "";
-    by("right-hw").textContent = config.trackball ? "轨迹球模拟" : geometry.kind === "sofle-demo" && geometry.keys.length === 64 ? "旋钮" : "";
+    const parts = [keymap?.file,t(modes[geometry.kind]),t("{count} 键",{count:geometry.keys.length})];
+    if (keymap) parts.push(t("{count} 层",{count:keymap.layers.length}));
+    if (shortLayers) parts.push(t("{count} 层末尾有空位",{count:shortLayers}));
+    by("keymap-info").textContent = parts.filter(Boolean).join(" · ");
+    by("left-hw").textContent = geometry.kind === "sofle-demo" && geometry.keys.length === 64 ? t("五向开关") : "";
+    by("right-hw").textContent = config.trackball ? t("轨迹球模拟") : geometry.kind === "sofle-demo" && geometry.keys.length === 64 ? t("旋钮") : "";
 }
 
 function setKeymap(keymap) {
@@ -985,14 +1011,50 @@ each("[data-screen-power]").forEach(input => input.onchange = () => {
     }
     save(); refreshControls();
 });
-by("theme").onchange = e => update("theme",e.target.value);
-by("rotation").onchange = e => update("rotation",Number(e.target.value));
-each("[data-preset]").forEach(b=>b.onclick=()=>{
-    const {rotation,enabled} = settings();
-    config.screens[side] = {...preset(b.dataset.preset),rotation,enabled};
-    selectedIndex = -1;
-    save(); refreshControls();
-});
+function applyPreset(hand,name,scope,enable) {
+    const {theme,rotation,enabled} = config.screens[hand];
+    const next = {...preset(name),theme,rotation,enabled:enable ?? enabled};
+    if (scope) next.modules.find(module => module.type === "keys").keys = scope;
+    config.screens[hand] = next;
+}
+
+function mountScreenEditors() {
+    for (const hand of SIDES) {
+        const area = by("side-editor-template").content.firstElementChild.cloneNode(true);
+        area.id = "editor-"+hand;
+        area.querySelectorAll("[data-part]").forEach(element => { element.id = element.dataset.part+"-"+hand; });
+        by("side-editors").append(area);
+        by("theme-"+hand).onchange = e => update(hand,"theme",e.target.value);
+        by("rotation-"+hand).onchange = e => update(hand,"rotation",Number(e.target.value));
+        by("preset-"+hand).onchange = e => {
+            applyPreset(hand,e.target.value);
+            save(); selectModule(hand,-1);
+        };
+        by("open-library-"+hand).onclick = () => openLibrary(hand);
+        by("insert-spacer-"+hand).onclick = () => insertSpacer(hand);
+        by("png-"+hand).onclick = () => canvases[hand].toBlob(blob => {
+            if (blob) download(blob,"color-view-"+hand+"-128.png");
+        });
+    }
+}
+
+by("key-display").onchange = () => { by("key-target-wrap").hidden = by("key-display").value !== "single"; };
+by("apply-key-display").onclick = () => {
+    const single = by("key-display").value === "single";
+    const hand = by("key-target").value;
+    if (single) {
+        const other = config.screens[SIDES.find(item => item !== hand)];
+        if (other.modules.some(module => module.type === "keys")) {
+            other.modules = other.modules.filter(module => module.type !== "keys");
+            other.preset = "custom";
+        }
+        applyPreset(hand,"keys","all",true);
+    } else {
+        for (const screen of SIDES) applyPreset(screen,"keys","local",true);
+    }
+    save(); selectModule(single ? hand : side,1);
+    note("已应用键位预设");
+};
 each("[data-side]").forEach(b=>b.onclick=()=>{ side=b.dataset.side; selectedIndex = -1; refreshControls(); });
 by("load-keymap").onclick = () => by("keymap-file").click();
 by("load-physical").onclick = () => by("physical-file").click();
@@ -1005,26 +1067,39 @@ function onTextUpload(id, callback) {
         try {
             if (file.size > 1024*1024) throw Error("键位文件须小于 1 MB");
             callback(await file.text(),file.name);
-        } catch (error) { note("导入失败 · " + error.message); }
+        } catch (error) { note(t("导入失败")+" · "+t(error.message)); }
         finally { e.target.value = ""; }
     };
 }
 onTextUpload("keymap-file",(text,name) => {
     const keymap = ZmkLayout.parseKeymap(text,name);
     setKeymap(keymap);
-    note("已读取 " + geometry.keys.length + " 键 · " + keymap.layers.length + " 层");
+    note(t("已读取 {keys} · {layers}",{keys:t("{count} 键",{count:geometry.keys.length}),layers:t("{count} 层",{count:keymap.layers.length})}));
 });
 onTextUpload("physical-file",text => {
     const matches = ZmkLayout.parsePhysical(text).filter(layout => layout.keys.length === geometry.keys.length);
     if (!matches.length) throw Error("没有与当前 keymap 键数相同的物理配列");
     setKeymap({...config.keymap,layout:"physical",physical:matches[0]});
-    note("已应用物理配列 · " + matches[0].name + (matches.length > 1 ? "（第一个匹配项）" : ""));
+    note(t("已应用物理配列 · {name}",{name:matches[0].name}) + (matches.length > 1 ? " · "+t("第一个匹配项") : ""));
 });
 by("endpoint").onchange = e => { state.endpoint = e.target.value; };
 by("profile").onchange = e => { state.profile = +e.target.value; };
 by("battery").oninput = e => { state.battery = +e.target.value; by("battery-value").value = state.battery+"%"; };
 by("usb-power").onchange = e => { state.usb = e.target.checked; };
 by("charging").onchange = e => { state.charge = e.target.checked; };
+by("simulate-key").onclick = () => {
+    const candidates = [...keyNodes.keys()].filter(id => /^[A-Z0-9]$/i.test(binding(id)) && !state.held.has(id));
+    if (candidates.length) {
+        const id = candidates[state.simulated++ % candidates.length];
+        press(id); release(id);
+    } else {
+        state.last = "A";
+        state.kicked = performance.now();
+        state.recent.push(state.kicked);
+        showInput("按键 {label}","A");
+    }
+    by("wpm-value").value = wpm()+" WPM";
+};
 by("layer").onchange = e => { fnReturn = null; setLayer(+e.target.value); };
 each("[data-mod]").forEach(b=>b.onclick=()=>{
     const key = b.dataset.mod;
@@ -1078,16 +1153,12 @@ window.addEventListener("keyup",e=>{
     if (id !== undefined) release(id);
 });
 window.addEventListener("blur",()=>[...state.held].forEach(release));
-by("export-png").onclick = () => {
-    const hand = side;
-    canvases[hand].toBlob(b=>{ if(b) download(b,"color-view-"+hand+"-128.png"); });
-};
 by("export-config").onclick = () => {
     try {
         const project = exportProject();
         download(new Blob([JSON.stringify(project,null,2)+"\n"],{type:"application/json"}),"color-view.zmk.json");
         note("已导出 ZMK 显示布局，可和固件工程一起交给 AI");
-    } catch (error) { note("导出失败 · "+error.message); }
+    } catch (error) { note(t("导出失败")+" · "+t(error.message)); }
 };
 by("import-config").onclick = () => by("config-file").click();
 by("config-file").onchange = async e => {
@@ -1099,7 +1170,7 @@ by("config-file").onchange = async e => {
         side = SIDES.find(hand => config.screens[hand].enabled) ?? "left";
         selectedIndex = -1;
         setKeymap(config.keymap); note("已导入布局");
-    } catch (error) { note("导入失败 · "+error.message); }
+    } catch (error) { note(t("导入失败")+" · "+t(error.message)); }
     finally { e.target.value = ""; }
 };
 by("asset-file").onchange = async e => {
@@ -1112,13 +1183,15 @@ by("asset-file").onchange = async e => {
         assets.set(module,frames);
         state.kicked = performance.now();
         if (settings().modules[selectedIndex] === module) refreshControls();
-        note("已转换为 128×128 八色素材 · "+frames.length+" 帧");
-    } catch (error) { note("素材读取失败 · "+error.message); }
+        note(t("已转换为 128×128 八色素材 · {count} 帧",{count:frames.length}));
+    } catch (error) { note(t("素材读取失败")+" · "+t(error.message)); }
     finally { e.target.value = ""; }
 };
 
 function tick(now) {
     drawScreens(now);
+    const value = wpm()+" WPM";
+    if (by("wpm-value").value !== value) by("wpm-value").value = value;
     for (const [id,until] of state.flashed) if (until <= now) state.flashed.delete(id);
     for (const [id,button] of keyNodes) button.classList.toggle("active",state.held.has(id)||state.flashed.has(id));
     const on = modifiers();
@@ -1126,7 +1199,21 @@ function tick(now) {
     requestAnimationFrame(tick);
 }
 
-paletteOptions();
+mountScreenEditors();
+const pageLanguage = by("language");
+function applyLanguage() {
+    ColorViewLanguage.translateDocument();
+    pageLanguage.replaceChildren(...ColorViewLanguage.options().map(([value,label])=>new Option(label,value)));
+    pageLanguage.value = ColorViewLanguage.preference();
+    for (const option of by("profile").options) option.textContent = t("档位 {count}",{count:option.value});
+    populateLibraryMenus();
+    by("palette").replaceChildren();
+    paletteOptions();
+    if (state.input) showInput(state.input.key,state.input.label);
+    if (geometry) { syncKeymapControls(); renderKeyLabels(); }
+    refreshControls();
+}
+pageLanguage.onchange = () => { ColorViewLanguage.select(pageLanguage.value); applyLanguage(); };
 createKeyboard();
-refreshControls();
+applyLanguage();
 requestAnimationFrame(tick);
