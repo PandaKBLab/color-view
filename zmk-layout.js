@@ -38,6 +38,7 @@ const ZmkLayout = (() => {
     const labels = {
         ESC:"Esc", ESCAPE:"Esc", BACKSPACE:"Bksp", BSPC:"Bksp", RETURN:"Enter", RET:"Enter", SPACE:"Space", TAB:"Tab",
         LCTRL:"Ctrl", RCTRL:"Ctrl", LCTL:"Ctrl", RCTL:"Ctrl", LSHIFT:"Shift", RSHIFT:"Shift", LSFT:"Shift", RSFT:"Shift",
+        LSHFT:"Shift", RSHFT:"Shift",
         LALT:"Alt", RALT:"Alt", LGUI:"GUI", RGUI:"GUI", LCMD:"GUI", RCMD:"GUI", LWIN:"GUI", RWIN:"GUI",
         CAPS:"Caps", CAPSLOCK:"Caps", NUMLOCK:"Num", UP:"↑", DOWN:"↓", LEFT:"←", RIGHT:"→",
         UP_ARROW:"↑", DOWN_ARROW:"↓", LEFT_ARROW:"←", RIGHT_ARROW:"→", MINUS:"-", EQUAL:"=", COMMA:",", DOT:".",

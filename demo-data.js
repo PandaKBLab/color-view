@@ -28,3 +28,18 @@ const SOFLE = (() => {
     ];
     return {layout,names,functionNames};
 })();
+
+// LCD cells redrawn from the visible keyboard layout. Indices follow the Sofle Mod keymap order.
+const SOFLE_MOD_FACE = (() => {
+    const cells = [];
+    const tops = [36,36,10,0,13,26];
+    const add = (hand,x,y) => cells.push([cells.length,hand,x,y,100,100]);
+    for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 6; col++) add(0,col*100,tops[col]+row*100);
+        for (let col = 0; col < 6; col++) add(1,(col+1)*100,tops[5-col]+row*100);
+    }
+    const thumbs = [410,400,413,426,486];
+    for (let col = 0; col < thumbs.length; col++) add(0,200+col*100,thumbs[col]);
+    for (let col = 0; col < thumbs.length; col++) add(1,col*100,thumbs[thumbs.length-1-col]);
+    return {cells,fiveWay:[58,59,60,61,62],encoderPress:63};
+})();

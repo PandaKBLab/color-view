@@ -40,6 +40,7 @@ const CATEGORIES = {status:"状态栏", keys:"按键图", animation:"动图", in
 const TYPES = {
     status:{category:"status", name:"连接与电量", height:16, min:12},
     keys:{category:"keys", name:"键位与外设", height:64, min:32},
+    sofleModKeys:{category:"keys", name:"Sofle Mod 按键", height:64, min:32},
     sprite:{category:"animation", name:"方块鸡", height:48, min:16},
     asset:{category:"animation", name:"本地图片／GIF", height:48, min:16},
     layer:{category:"interaction", name:"当前层", height:24, min:16},
@@ -49,13 +50,15 @@ const TYPES = {
     mods:{category:"interaction", name:"修饰键与锁定", height:16, min:12},
     spacer:{name:"空行", height:4, min:1},
 };
+const keyOptions = {keys:["键位范围",{local:"本侧",all:"两半键盘"}],keyLayer:["键位层",{active:"跟随当前层",base:"固定基础层"}]};
 const OPTIONS = {
     status:{icon:["连接图标",{icons:"像素图标与档位",badge:"字母徽标与档位",text:"仅文字",none:"隐藏"}],
         linkColor:["连接颜色",{[CYAN]:"青",...COLOR_LABELS,auto:"跟随模块文字"}],
         battery:["电量图标",{percent:"百分比",gauge:"电池格",both:"电池格＋百分比",none:"隐藏"}],
         batteryColor:["电量颜色",{auto:"跟随模块文字",...COLOR_LABELS}],
         power:["供电与充电",{text:"PWR / CHG",icons:"插头 / 闪电",none:"隐藏"}]},
-    keys:{keys:["键位范围",{local:"本侧",all:"两半键盘"}],keyLayer:["键位层",{active:"跟随当前层",base:"固定基础层"}]},
+    keys:keyOptions,
+    sofleModKeys:{...keyOptions,keys:["键位范围",{all:"两半键盘",local:"本侧"}]},
     sprite:{animation:["播放方式",{loop:"循环",key:"按键触发",still:"静态"}]},
     asset:{animation:["播放方式",{loop:"循环",key:"按键触发",still:"静态"}]},
 };
@@ -367,13 +370,16 @@ function drawWave(y,h,fg,now) {
     }
 }
 
-const binding = (position,layer=state.layer) => ZmkLayout.binding(config.keymap,layer,position)?.label || "-";
+const binding = (position,layer=state.layer,keymap=config.keymap) => ZmkLayout.binding(keymap,layer,position)?.label || "-";
 const layerNames = () => config.keymap?.layers.map(layer => layer.name) ?? LAYERS;
 const pixelText = (text,fallback) => /^[\x20-\x7e↑↓←→]+$/.test(text) ? text.slice(0,24) : fallback;
 
-function screenKey(position,layer) {
-    const long = binding(position,layer);
-    const tiny = {Space:"SP",Enter:"ENT",Shift:"SFT",Ctrl:"CTL",Bksp:"BK",Mute:"MT",Caps:"CAP"};
+function screenKey(position,view) {
+    const long = binding(position,view.layer,view.keymap);
+    if (view.sofle && (position === 51 || position === 54) && /^L\d+$/.test(long)) return "FN";
+    const tiny = view.sofle
+        ? {Esc:"ES",Tab:"TB",Caps:"CP",Shift:"SH",Ctrl:"CT",GUI:"GU",Alt:"AL",Fn:"FN",Space:"SP",Enter:"EN",Bksp:"BS",Mute:"MU"}
+        : {Space:"SP",Enter:"ENT",Shift:"SFT",Ctrl:"CTL",Bksp:"BK",Mute:"MT",Caps:"CAP"};
     const label = tiny[long] || long;
     return pixelText(label,"-").slice(0,3);
 }
@@ -400,6 +406,16 @@ function touchingKeys(keys) {
     });
 }
 
+function displayGeometry(groups) {
+    const displayKeys = groups.map(touchingKeys);
+    return {displayKeys,displayBounds:displayKeys.map(layoutBounds)};
+}
+
+const sofleModGeometry = {
+    ...displayGeometry([0,1].map(hand=>SOFLE_MOD_FACE.cells.filter(key=>key[1]===hand))),
+    fiveWay:SOFLE_MOD_FACE.fiveWay,encoderPress:SOFLE_MOD_FACE.encoderPress,
+};
+
 function prepareGeometry() {
     geometry = ZmkLayout.geometry(config.keymap);
     geometry.groups = [0,1].map(hand => geometry.keys.filter(key => key[1] === hand));
@@ -408,16 +424,18 @@ function prepareGeometry() {
     geometry.fiveWay = sampleControls ? [58,59,60,61,62] : [];
     geometry.encoderPress = sampleControls ? 63 : null;
     const peripheralPositions = new Set([...geometry.fiveWay,geometry.encoderPress]);
-    geometry.displayKeys = geometry.groups.map(keys => touchingKeys(keys.filter(key=>!peripheralPositions.has(key[0]))));
-    geometry.displayBounds = geometry.displayKeys.map(layoutBounds);
+    Object.assign(geometry,displayGeometry(geometry.groups.map(keys=>keys.filter(key=>!peripheralPositions.has(key[0])))));
     geometry.layerNames = layerNames();
 }
 
 const keyIsActive = (id,now) => state.held.has(id) || (state.flashed.get(id) ?? 0) > now;
+const isKeyModule = module => TYPES[module.type]?.category === "keys";
+const matchesSofleMod = () => !config.keymap || geometry.keys.length === 64 &&
+    (geometry.kind === "sofle-demo" || /sofle[ _-]*mod/i.test(config.keymap.file));
 
-function drawKeyGrid(group,x,y,w,h,layer,fg,now) {
-    const dims = geometry.displayBounds[group];
-    const keys = geometry.displayKeys[group];
+function drawKeyGrid(view,group,x,y,w,h,fg,now) {
+    const dims = view.board.displayBounds[group];
+    const keys = view.board.displayKeys[group];
     if (!keys.length) { center("NO KEYS",x,y,w,h,1,fg); return; }
     const scale = Math.min((w-1)/dims.w,(h-1)/dims.h);
     const left = x+(w-1-dims.w*scale)/2;
@@ -425,7 +443,7 @@ function drawKeyGrid(group,x,y,w,h,layer,fg,now) {
     const cells = keys.map(([id,,x,y,w,h]) => {
         const startX = Math.round(left+(x-dims.x)*scale), startY = Math.round(top+(y-dims.y)*scale);
         return {id,x:startX,y:startY,w:Math.max(2,Math.round(left+(x+w-dims.x)*scale)-startX+1),
-            h:Math.max(2,Math.round(top+(y+h-dims.y)*scale)-startY+1),down:keyIsActive(id,now)};
+            h:Math.max(2,Math.round(top+(y+h-dims.y)*scale)-startY+1),down:view.live && keyIsActive(id,now)};
     });
     for (const cell of cells) {
         if (cell.down && cell.w > 2 && cell.h > 2) paint(cell.x+1,cell.y+1,cell.w-2,cell.h-2,GREEN);
@@ -435,17 +453,17 @@ function drawKeyGrid(group,x,y,w,h,layer,fg,now) {
         const {id,x,y,w,h,down} = cell;
         if (h < 7 || w < 5) continue;
         const room = w - (w >= 7 ? 4 : 2);
-        const key = screenKey(id,layer);
+        const key = screenKey(id,view);
         const label = textWidth(key,1) <= w-2 ? key : key.slice(0,Math.floor((room+1)/4));
         const font = h >= 11 && textWidth(label,1,READABLE_FONT) <= room ? READABLE_FONT : COMPACT_FONT;
         center(label,x,y,w,h,1,down ? BLACK : fg,font);
     }
 }
 
-function encoderValues(layer) {
-    if (!config.keymap) return {clockwise:"Vol+",counterclockwise:"Vol-"};
-    const current = config.keymap.layers[layer]?.encoders?.[0];
-    const base = config.keymap.layers[0]?.encoders?.[0];
+function encoderValues(layer,keymap=config.keymap) {
+    if (!keymap) return {clockwise:"Vol+",counterclockwise:"Vol-"};
+    const current = keymap.layers[layer]?.encoders?.[0];
+    const base = keymap.layers[0]?.encoders?.[0];
     return !current || current.transparent ? base : current;
 }
 
@@ -482,29 +500,38 @@ function drawFooterValue(hand,values,x,y,w,h,fg) {
 
 function drawKeys(module,y,h,fg,now,screen) {
     const all = module.keys === "all", left = screen === "left";
-    const layer = module.keyLayer === "base" ? 0 : state.layer;
-    const rotations = encoderValues(layer);
-    const showFive = (all || left) && geometry.fiveWay.length > 0;
-    const showEncoder = (all || !left) && (geometry.encoderPress !== null || Boolean(rotations));
-    const device = now < state.deviceUntil ? state.device : "";
+    const sofle = module.type === "sofleModKeys";
+    const live = !sofle || matchesSofleMod();
+    const board = sofle ? sofleModGeometry : geometry;
+    const layer = module.keyLayer === "base" || !live ? 0 : state.layer;
+    const keymap = live ? config.keymap : null;
+    const view = {board,layer,keymap,live,sofle};
+    const rotations = encoderValues(layer,keymap);
+    const showFive = (all || left) && board.fiveWay.length > 0;
+    const showEncoder = (all || !left) && (board.encoderPress !== null || Boolean(rotations));
+    const device = live && now < state.deviceUntil ? state.device : "";
     const footer = showFive || showEncoder ? 10 : 0;
     const body = h-footer-2;
     if (all) {
-        drawKeyGrid(0,2,y+1,50,body,layer,fg,now);
-        drawKeyGrid(1,76,y+1,50,body,layer,fg,now);
-    } else drawKeyGrid(Number(!left),left ? 2 : 32,y+1,94,body,layer,fg,now);
+        drawKeyGrid(view,0,sofle ? 1 : 2,y+1,sofle ? 57 : 50,body,fg,now);
+        drawKeyGrid(view,1,sofle ? 70 : 76,y+1,sofle ? 57 : 50,body,fg,now);
+    } else drawKeyGrid(view,Number(!left),left ? 2 : 32,y+1,94,body,fg,now);
 
     const middle = all ? 64 : left ? 112 : 16;
     const iconY = y + Math.max(0,Math.min(Math.floor(body*0.24),body-20));
-    const five = showFive ? geometry.fiveWay.map(id=>({label:peripheralLabel(binding(id,layer)),active:keyIsActive(id,now)})) : [];
+    const five = showFive ? board.fiveWay.map(id=>({label:peripheralLabel(binding(id,layer,keymap)),active:live && keyIsActive(id,now)})) : [];
     const encoder = showEncoder ? [
         {label:peripheralLabel(rotations?.counterclockwise),active:device === "VOL-"},
-        {label:peripheralLabel(geometry.encoderPress !== null ? binding(geometry.encoderPress,layer) : ""),
-            active:device === "MUTE" || keyIsActive(geometry.encoderPress,now)},
+        {label:peripheralLabel(board.encoderPress !== null ? binding(board.encoderPress,layer,keymap) : ""),
+            active:device === "MUTE" || live && keyIsActive(board.encoderPress,now)},
         {label:peripheralLabel(rotations?.clockwise),active:device === "VOL+"},
     ] : [];
     if (showFive) drawDpad(middle-(all ? 11 : 4),iconY,five.some(item=>item.active) ? YELLOW : fg);
     if (showEncoder) drawKnob(middle+(all ? 2 : -4),iconY,encoder.some(item=>item.active) ? YELLOW : fg);
+    if (sofle && all && iconY >= y+7) {
+        bitmap("L",middle-8,iconY-7,1,fg);
+        bitmap("R",middle+5,iconY-7,1,fg);
+    }
 
     const badgeY = iconY + (showFive || showEncoder ? 12 : 2);
     const badge = "L" + layer;
@@ -533,7 +560,7 @@ function drawModule(module,y,screenColor,now,screen) {
     if (bg !== screenColor) paint(0,y,SIZE,h,bg);
     if (type === "status") drawStatus(module,y,h,fg);
     if (type === "mods") drawMods(y,h,fg);
-    if (type === "keys") drawKeys(module,y,h,fg,now,screen);
+    if (isKeyModule(module)) drawKeys(module,y,h,fg,now,screen);
     if (TYPES[type].category === "animation") drawAnimation(module,y,h,fg,now);
     if (type === "layer") drawValue(y,h,fg,"LAYER "+state.layer,pixelText(geometry.layerNames[state.layer] || "","LAYER "+state.layer));
     if (type === "last") drawValue(y,h,fg,"LAST KEY",pixelText(state.last || "-","-"));
@@ -1118,13 +1145,19 @@ function exportProject() {
                 exportedAssets[assetId] = ZmkProject.encode(module.type === "sprite" ? chicken : assets.get(module),COLORS);
             }
             const colors = module.type === "spacer" ? undefined : moduleColors(module,background);
-            const entry = {...module,x:0,y,width:SIZE,colors,inputs:ZmkProject.events[module.type]};
+            const entry = {...module,x:0,y,width:SIZE,colors,inputs:ZmkProject.events[isKeyModule(module) ? "keys" : module.type]};
+            if (module.type === "sofleModKeys") {
+                entry.keyboardLayout = "sofle-mod";
+                entry.keymapSource = config.keymap && matchesSofleMod() ? "imported" : "sofle-mod-example";
+            }
             if (assetId) entry.assetId = assetId;
             y += module.height;
             return entry;
         });
         return [hand,{...screen,background,modules}];
     }));
+    const hasSofleMod = [...Object.values(screens).flatMap(screen=>screen.modules),...config.library]
+        .some(module=>module.type === "sofleModKeys");
     return {
         format:ZmkProject.format,version:1,
         display:{width:SIZE,height:SIZE,colorMode:"RGB111",palette:COLORS,origin:"top-left before rotation",
@@ -1133,6 +1166,12 @@ function exportProject() {
         screens,assets:exportedAssets,
         keyboard:{geometrySource:geometry.kind,geometryUnits:"centi-keyunit",file:config.keymap?.file ?? null,
             peripherals:{fiveWayPositions:geometry.fiveWay,encoderPressPosition:geometry.encoderPress},
+            displayLayouts:hasSofleMod ? {"sofle-mod": {
+                units:"centi-keyunit",
+                cells:SOFLE_MOD_FACE.cells.map(([index,hand,x,y,width,height])=>({index,side:SIDES[hand],x,y,width,height})),
+                peripherals:{fiveWayPositions:SOFLE_MOD_FACE.fiveWay,encoderPressPosition:SOFLE_MOD_FACE.encoderPress},
+                exampleLabels:SOFLE.names,exampleEncoder:{clockwise:"Vol+",counterclockwise:"Vol-"},
+            }} : undefined,
             positions:geometry.keys.map(([index,hand,x,y,width,height,rotation,originX,originY]) => ({
                 index,side:SIDES[hand],x,y,width,height,rotation,originX,originY,
             })),
@@ -1219,7 +1258,7 @@ each("[data-screen-power]").forEach(input => input.onchange = () => {
 function applyPreset(hand,name,scope,enable) {
     const {theme,rotation,enabled} = config.screens[hand];
     const next = {...preset(name),theme,rotation,enabled:enable ?? enabled};
-    if (scope) next.modules.find(module => module.type === "keys").keys = scope;
+    if (scope) next.modules.find(isKeyModule).keys = scope;
     config.screens[hand] = next;
 }
 
@@ -1250,8 +1289,8 @@ by("apply-key-display").onclick = () => {
     const hand = by("key-target").value;
     if (single) {
         const other = config.screens[SIDES.find(item => item !== hand)];
-        if (other.modules.some(module => module.type === "keys")) {
-            other.modules = other.modules.filter(module => module.type !== "keys");
+        if (other.modules.some(isKeyModule)) {
+            other.modules = other.modules.filter(module => !isKeyModule(module));
             other.preset = "custom";
         }
         applyPreset(hand,"keys","all",true);

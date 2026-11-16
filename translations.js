@@ -6,6 +6,7 @@ const ColorViewLanguage = (() => {
     const messages = new Map();
     // The first column is the Simplified Chinese source. Keep the other columns in columnOrder.
     const rows = `
+Sofle Mod 按键|Sofle Mod keymap|Sofle Mod 按鍵|Sofle Mod キーマップ|Sofle Mod Tastenbelegung|Disposition Sofle Mod|Mapa de teclas Sofle Mod|Mapa de teclas Sofle Mod|Sofle Mod 키맵|Mappa tasti Sofle Mod|Раскладка Sofle Mod|Mapa klawiszy Sofle Mod
 选择模块以预览和设置。|Select a module to preview and configure it.|選取模組以預覽和設定。|モジュールを選択してプレビューや設定を行います。|Wähle ein Modul für Vorschau und Einstellungen.|Sélectionnez un module pour le prévisualiser et le configurer.|Selecciona un módulo para previsualizarlo y configurarlo.|Selecione um módulo para prévia e configuração.|미리 보고 설정할 모듈을 선택하세요.|Seleziona un modulo per visualizzarlo e configurarlo.|Выберите модуль для просмотра и настройки.|Wybierz moduł, aby go zobaczyć i skonfigurować.
 模块预览|Module preview|模組預覽|モジュールのプレビュー|Modulvorschau|Aperçu du module|Vista previa del módulo|Prévia do módulo|모듈 미리보기|Anteprima del modulo|Предпросмотр модуля|Podgląd modułu
 添加到布局|Add to layout|加入版面|レイアウトに追加|Zum Layout hinzufügen|Ajouter au layout|Añadir al diseño|Adicionar ao layout|레이아웃에 추가|Aggiungi al layout|Добавить в макет|Dodaj do układu
