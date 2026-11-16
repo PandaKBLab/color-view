@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Color View Studio · 显示配置</title>
   <meta name="description" content="组合显示模块并实时预览 Color View 的 128 × 128 八色画面。">
-  <link rel="stylesheet" href="style.css?v=3">
-  <script defer src="translations.js?v=3"></script>
+  <link rel="stylesheet" href="style.css?v=4">
+  <script defer src="translations.js?v=4"></script>
   <script defer src="demo-data.js?v=2"></script>
   <script defer src="zmk-layout.js?v=2"></script>
   <script defer src="zmk-project.js?v=2"></script>
-  <script defer src="studio.js?v=3"></script>
+  <script defer src="studio.js?v=4"></script>
 </head>
 <body>
   <header class="top">
@@ -24,37 +24,36 @@
       <div><h1>Color View 屏幕布局</h1><p>预览左右两块 128 × 128 八色屏。点选画面中的模块，即可调整样式和顺序。</p></div>
     </section>
     <div class="workspace">
-      <section class="panel settings" aria-labelledby="layout-title">
-        <div class="section-title"><h2 id="layout-title">布局与模块</h2></div>
-        <div id="side-editors" class="side-editors"></div>
-        <p class="module-hint">选择模块后可上移、下移或删除。新增内容插入所选模块下方。</p>
-        <template id="side-editor-template">
-          <article class="side-editor">
-            <div class="side-editor-heading"><h3 data-part="side-title"></h3><button type="button" data-part="png" class="button" aria-label="保存 PNG">PNG</button></div>
-            <label class="editor-field">预设<select data-part="preset"><option value="custom" disabled>自定义</option><option value="status">日常状态</option><option value="pixel">像素互动</option><option value="keys">键位与外设</option></select></label>
-            <div class="editor-fields"><label class="editor-field">底色<select data-part="theme"><option value="dark">黑底</option><option value="light">白底</option></select></label><label class="editor-field">方向<select data-part="rotation"><option value="0">0°</option><option value="180">180°</option></select></label></div>
-            <div class="height-budget"><progress data-part="height-meter" max="128" aria-label="已用画面高度"></progress><span data-part="height-text"></span></div>
-            <div class="module-tools"><button type="button" data-part="open-library" class="button primary">添加模块</button><button type="button" data-part="insert-spacer" class="button">插入空行</button></div>
-            <div data-part="modules" class="modules"></div><p data-part="empty-layout" class="module-hint" hidden>从模块库添加内容。</p>
-          </article>
-        </template>
-      </section>
       <section class="panel preview" aria-labelledby="preview-title">
         <div class="section-title"><h2 id="preview-title">双屏预览</h2><span class="panel-meta">128 × 128 px / 屏</span></div>
         <div class="preview-stage">
           <article id="preview-left" class="preview-side">
-            <div class="screen-header"><button type="button" data-side="left" class="side-button">左屏</button><label class="checkbox"><input type="checkbox" data-screen-power="left">启用</label></div>
-            <div id="active-left" class="display-bezel"><div class="screen-face"><canvas id="lcd-left" width="128" height="128" aria-label="左屏实时画面" role="img"></canvas><div id="hotspots-left" class="hotspots" role="group" aria-label="左屏模块"></div></div></div>
-            <button type="button" id="off-left" class="off-screen" data-side="left" hidden>左屏已关闭</button>
+            <div class="screen-viewport">
+              <div class="screen-header"><button type="button" data-side="left" class="side-button">左屏</button><label class="checkbox"><input type="checkbox" data-screen-power="left">启用</label></div>
+              <div id="active-left" class="display-bezel"><div class="screen-face"><canvas id="lcd-left" width="128" height="128" aria-label="左屏实时画面" role="img"></canvas><div id="hotspots-left" class="hotspots" role="group" aria-label="左屏模块"></div></div></div>
+              <button type="button" id="off-left" class="off-screen" data-side="left" hidden>左屏已关闭</button>
+            </div>
           </article>
           <article id="preview-right" class="preview-side">
-            <div class="screen-header"><button type="button" data-side="right" class="side-button">右屏</button><label class="checkbox"><input type="checkbox" data-screen-power="right">启用</label></div>
-            <div id="active-right" class="display-bezel"><div class="screen-face"><canvas id="lcd-right" width="128" height="128" aria-label="右屏实时画面" role="img"></canvas><div id="hotspots-right" class="hotspots" role="group" aria-label="右屏模块"></div></div></div>
-            <button type="button" id="off-right" class="off-screen" data-side="right" hidden>右屏已关闭</button>
+            <div class="screen-viewport">
+              <div class="screen-header"><button type="button" data-side="right" class="side-button">右屏</button><label class="checkbox"><input type="checkbox" data-screen-power="right">启用</label></div>
+              <div id="active-right" class="display-bezel"><div class="screen-face"><canvas id="lcd-right" width="128" height="128" aria-label="右屏实时画面" role="img"></canvas><div id="hotspots-right" class="hotspots" role="group" aria-label="右屏模块"></div></div></div>
+              <button type="button" id="off-right" class="off-screen" data-side="right" hidden>右屏已关闭</button>
+            </div>
           </article>
         </div>
         <div class="palette" aria-label="屏幕可用颜色"><span>原生 8 色</span><div id="palette"></div></div>
+        <template id="side-editor-template">
+          <section class="side-editor">
+            <div class="side-editor-heading"><h3 data-part="side-title">布局与模块</h3><button type="button" data-part="png" class="button" aria-label="保存 PNG">PNG</button></div>
+            <div class="editor-fields"><label class="editor-field">预设<select data-part="preset"><option value="custom" disabled>自定义</option><option value="status">日常状态</option><option value="pixel">像素互动</option><option value="keys">键位与外设</option></select></label><label class="editor-field">底色<select data-part="theme"><option value="dark">黑底</option><option value="light">白底</option></select></label><label class="editor-field">方向<select data-part="rotation"><option value="0">0°</option><option value="180">180°</option></select></label></div>
+            <div class="height-budget"><progress data-part="height-meter" max="128" aria-label="已用画面高度"></progress><span data-part="height-text"></span></div>
+            <div class="module-tools"><button type="button" data-part="open-library" class="button primary">添加模块</button><button type="button" data-part="insert-spacer" class="button">插入空行</button></div>
+            <div data-part="modules" class="modules"></div><p data-part="empty-layout" class="module-hint" hidden>从模块库添加内容。</p>
+          </section>
+        </template>
       </section>
+      <aside class="workspace-sidebar">
       <section class="panel inspector" aria-labelledby="inspector-title">
         <div class="section-title"><h2 id="inspector-title">模块设置</h2></div>
         <p id="inspector-hint" class="module-hint">点击预览或布局列表中的模块。</p>
@@ -87,6 +86,7 @@
           <div class="track-actions"><button type="button" data-device="CLICK">点击</button><button type="button" id="scroll-mode" aria-pressed="false">滚动模式</button></div>
         </div>
       </section>
+      </aside>
     <section class="panel layout" aria-labelledby="keyboard-title">
       <div class="section-title">
         <div><h2 id="keyboard-title">键位与输入</h2><span class="panel-meta" id="keymap-info">Sofle 示例配列</span></div>
@@ -110,7 +110,7 @@
       </div>
     </section>
     </div>
-    <footer><a href="https://github.com/PandaKBLab/color-view">Color View 项目文档</a><span>将布局 JSON 与 ZMK 工程一起交给 AI，可按模块配置修改显示代码。</span></footer>
+    <footer><a href="https://github.com/PandaKBLab/color-view">Color View 项目文档</a></footer>
     <div id="toast" class="toast" role="status" hidden></div>
     <input id="asset-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
     <dialog id="module-library" class="module-dialog" aria-labelledby="library-title">

@@ -612,7 +612,6 @@ function refreshControls(focus) {
         by("off-"+hand).hidden = enabled;
         document.querySelector('[data-screen-power="'+hand+'"]').checked = enabled;
         by("hotspots-"+hand).replaceChildren(...screenHotspots(hand));
-        by("side-title-"+hand).textContent = t(SIDE_LABEL[hand]);
         by("editor-"+hand).dataset.editing = String(hand === side);
         by("png-"+hand).disabled = !enabled;
         for (const field of ["preset","theme","rotation"]) by(field+"-"+hand).value = String(screen[field]);
@@ -1023,7 +1022,8 @@ function mountScreenEditors() {
         const area = by("side-editor-template").content.firstElementChild.cloneNode(true);
         area.id = "editor-"+hand;
         area.querySelectorAll("[data-part]").forEach(element => { element.id = element.dataset.part+"-"+hand; });
-        by("side-editors").append(area);
+        area.setAttribute("aria-labelledby","side-title-"+hand);
+        by("preview-"+hand).append(area);
         by("theme-"+hand).onchange = e => update(hand,"theme",e.target.value);
         by("rotation-"+hand).onchange = e => update(hand,"rotation",Number(e.target.value));
         by("preset-"+hand).onchange = e => {
@@ -1157,7 +1157,7 @@ by("export-config").onclick = () => {
     try {
         const project = exportProject();
         download(new Blob([JSON.stringify(project,null,2)+"\n"],{type:"application/json"}),"color-view.zmk.json");
-        note("已导出 ZMK 显示布局，可和固件工程一起交给 AI");
+        note("已导出 ZMK 显示布局");
     } catch (error) { note(t("导出失败")+" · "+t(error.message)); }
 };
 by("import-config").onclick = () => by("config-file").click();
