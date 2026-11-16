@@ -18,6 +18,24 @@ const PIXELS = {
     "\\":"44211", "[":"64446", "]":"31113", "'":"22000", ";":"02024", ",":"00024",
     "=":"07070", "\x60":"42000", "↑":"27222", "↓":"22272", "←":"24742", "→":"21712",
 };
+const READABLE_PIXELS = {
+    A:[14,17,17,31,17,17,17], B:[30,17,17,30,17,17,30], C:[14,17,16,16,16,17,14],
+    D:[30,17,17,17,17,17,30], E:[31,16,16,30,16,16,31], F:[31,16,16,30,16,16,16],
+    G:[14,17,16,23,17,17,15], H:[17,17,17,31,17,17,17], I:[14,4,4,4,4,4,14],
+    J:[7,2,2,2,18,18,12], K:[17,18,20,24,20,18,17], L:[16,16,16,16,16,16,31],
+    M:[17,27,21,21,17,17,17], N:[17,25,25,21,19,19,17], O:[14,17,17,17,17,17,14],
+    P:[30,17,17,30,16,16,16], Q:[14,17,17,17,21,18,13], R:[30,17,17,30,20,18,17],
+    S:[15,16,16,14,1,1,30], T:[31,4,4,4,4,4,4], U:[17,17,17,17,17,17,14],
+    V:[17,17,17,17,10,10,4], W:[17,17,17,21,21,27,17], X:[17,17,10,4,10,17,17],
+    Y:[17,17,10,4,4,4,4], Z:[31,1,2,4,8,16,31],
+    0:[14,17,19,21,25,17,14], 1:[4,12,4,4,4,4,14], 2:[14,17,1,6,8,16,31],
+    3:[30,1,1,14,1,1,30], 4:[6,10,10,18,31,2,2], 5:[31,16,30,1,1,17,14],
+    6:[6,8,16,30,17,17,14], 7:[31,1,2,4,8,8,8], 8:[14,17,17,14,17,17,14],
+    9:[14,17,17,15,1,2,12], "%":[25,26,2,4,8,11,19], " ":[0,0,0,0,0,0,0],
+};
+const COMPACT_FONT = {width:3,height:5,glyphs:PIXELS};
+const READABLE_FONT = {width:5,height:7,glyphs:READABLE_PIXELS};
+const VALUE_STYLES = [[READABLE_FONT,2],[COMPACT_FONT,2],[READABLE_FONT,1],[COMPACT_FONT,1]];
 const CATEGORIES = {status:"状态栏", keys:"按键图", animation:"动图", interaction:"交互"};
 const TYPES = {
     status:{category:"status", name:"连接与电量", height:16, min:12},
@@ -177,20 +195,29 @@ function strokeBox(x,y,w,h,color) {
     paint(x,y,1,h,color); paint(x+w-1,y,1,h,color);
 }
 
-function textWidth(value, scale) { return Math.max(0, value.length * 4 - 1) * scale; }
+function textWidth(value,scale,font=COMPACT_FONT) {
+    return Math.max(0,value.length*(font.width+1)-1)*scale;
+}
 
-function bitmap(text, x, y, scale, color) {
+function bitmap(text,x,y,scale,color,font=COMPACT_FONT) {
     for (const character of String(text).toUpperCase()) {
-        const glyph = PIXELS[character] || PIXELS["-"];
-        for (let row = 0; row < 5; row++) for (let col = 0; col < 3; col++) {
-            if (Number(glyph[row]) & (4 >> col)) paint(x + col * scale, y + row * scale, scale, scale, color);
+        const glyph = font.glyphs[character];
+        const cellHeight = glyph ? font.height : COMPACT_FONT.height;
+        const cellWidth = glyph ? font.width : COMPACT_FONT.width;
+        const rows = glyph || PIXELS[character] || PIXELS["-"];
+        const offsetX = Math.floor((font.width-cellWidth)/2)*scale;
+        const offsetY = Math.floor((font.height-cellHeight)/2)*scale;
+        for (let row = 0; row < cellHeight; row++) for (let col = 0; col < cellWidth; col++) {
+            if (Number(rows[row]) & (1 << (cellWidth-1-col))) {
+                paint(x+offsetX+col*scale,y+offsetY+row*scale,scale,scale,color);
+            }
         }
-        x += scale * 4;
+        x += scale*(font.width+1);
     }
 }
 
-function center(text, x, y, w, h, scale, color) {
-    bitmap(text, x + (w - textWidth(text,scale))/2, y + (h - 5*scale)/2, scale, color);
+function center(text,x,y,w,h,scale,color,font=COMPACT_FONT) {
+    bitmap(text,x+Math.floor((w-textWidth(text,scale,font))/2),y+Math.floor((h-font.height*scale)/2),scale,color,font);
 }
 
 function paletteOptions() {
@@ -249,7 +276,7 @@ function drawStatus(module, y, h, fg) {
         paint(5,top+3,10,9,linkColor);
         center(link[0],5,top+3,10,9,1,linkColor === BLACK || linkColor === "#0000ff" ? WHITE : BLACK);
     }
-    if (module.icon !== "none") bitmap(link,module.icon === "text" ? 5 : 18,top+5,1,module.icon === "text" ? linkColor : fg);
+    if (module.icon !== "none") bitmap(link,module.icon === "text" ? 5 : 18,top+4,1,module.icon === "text" ? linkColor : fg,READABLE_FONT);
     if (module.power === "text") {
         if (state.usb) bitmap("PWR",44,top+5,1,fg);
         if (state.charge) bitmap("CHG",62,top+5,1,fg);
@@ -259,14 +286,14 @@ function drawStatus(module, y, h, fg) {
         if (state.charge) drawIcon("CHARGE",64,top+3,fg);
     }
     if (module.battery === "gauge" || module.battery === "both") {
-        const x = module.battery === "both" ? 85 : 98;
+        const x = module.battery === "both" ? 79 : 98;
         strokeBox(x,top+4,19,8,batteryColor);
         paint(x+19,top+6,2,4,batteryColor);
         paint(x+2,top+6,Math.round(state.battery*0.15),4,state.battery < 20 && module.batteryColor === "auto" ? RED : batteryColor);
     }
     if (module.battery === "percent" || module.battery === "both") {
         const number = state.battery + "%";
-        bitmap(number,123-textWidth(number,1),top+5,1,batteryColor);
+        bitmap(number,124-textWidth(number,1,READABLE_FONT),top+4,1,batteryColor,READABLE_FONT);
     }
     paint(4,y+h-1,120,1,fg);
 }
@@ -315,8 +342,8 @@ function drawAnimation(module,y,h,fg,now) {
 
 function drawValue(y,h,fg,label,value) {
     center(label,0,y,SIZE,8,1,fg);
-    const scale = Math.max(1,Math.min(4,Math.floor(120 / textWidth(value,1)),Math.floor((h-9)/5)));
-    center(value,0,y+8,SIZE,h-8,scale,fg);
+    const [font,scale] = VALUE_STYLES.find(([font,size])=>font.height*size <= h-8 && textWidth(value,size,font) <= 120);
+    center(value,0,y+8,SIZE,h-8,scale,fg,font);
 }
 
 function drawWave(y,h,fg,now) {
@@ -344,11 +371,11 @@ const binding = (position,layer=state.layer) => ZmkLayout.binding(config.keymap,
 const layerNames = () => config.keymap?.layers.map(layer => layer.name) ?? LAYERS;
 const pixelText = (text,fallback) => /^[\x20-\x7e↑↓←→]+$/.test(text) ? text.slice(0,24) : fallback;
 
-function screenKey(position, short, layer) {
+function screenKey(position,layer) {
     const long = binding(position,layer);
     const tiny = {Space:"SP",Enter:"ENT",Shift:"SFT",Ctrl:"CTL",Bksp:"BK",Mute:"MT",Caps:"CAP"};
     const label = tiny[long] || long;
-    return pixelText(label,"-").slice(0,short ? 1 : 3);
+    return pixelText(label,"-").slice(0,3);
 }
 
 function layoutBounds(keys) {
@@ -358,34 +385,62 @@ function layoutBounds(keys) {
     return {x,y,w:Math.max(...keys.map(key=>key[2]+key[4]))-x,h:Math.max(...keys.map(key=>key[3]+key[5]))-y};
 }
 
+function touchingKeys(keys) {
+    return keys.map(([id,hand,x,y,w,h]) => {
+        const right = x+w, bottom = y+h;
+        let edgeX = Infinity, edgeY = Infinity;
+        for (const [other,,xx,yy,ww,hh] of keys) {
+            if (other === id) continue;
+            const overlapY = Math.min(bottom,yy+hh) - Math.max(y,yy);
+            const overlapX = Math.min(right,xx+ww) - Math.max(x,xx);
+            if (xx >= right && xx-right <= Math.min(w,ww)*0.24 && overlapY >= Math.min(h,hh)/2) edgeX = Math.min(edgeX,xx);
+            if (yy >= bottom && yy-bottom <= Math.min(h,hh)*0.24 && overlapX >= Math.min(w,ww)/2) edgeY = Math.min(edgeY,yy);
+        }
+        return [id,hand,x,y,Number.isFinite(edgeX) ? edgeX-x : w,Number.isFinite(edgeY) ? edgeY-y : h];
+    });
+}
+
 function prepareGeometry() {
     geometry = ZmkLayout.geometry(config.keymap);
     geometry.groups = [0,1].map(hand => geometry.keys.filter(key => key[1] === hand));
-    geometry.bounds = [...geometry.groups,geometry.keys].map(layoutBounds);
+    geometry.bounds = geometry.groups.map(layoutBounds);
+    const local = geometry.groups.map(touchingKeys);
+    const [left,right] = local.map(layoutBounds);
+    const rightOffset = local.every(keys=>keys.length) ? left.x+left.w-right.x : 0;
+    const whole = [...local[0],...local[1].map(([id,hand,x,y,w,h]) => [id,hand,x+rightOffset,y,w,h])];
+    geometry.displayKeys = [...local,whole];
+    geometry.displayBounds = geometry.displayKeys.map(layoutBounds);
     geometry.layerNames = layerNames();
 }
 
 function drawKeys(module,y,h,fg,bg,now,screen) {
     const all = module.keys === "all";
-    const local = Number(screen === "right");
-    const dims = geometry.bounds[all ? 2 : local];
-    const keys = all ? geometry.keys : geometry.groups[local];
+    const group = all ? 2 : Number(screen === "right");
+    const dims = geometry.displayBounds[group];
+    const keys = geometry.displayKeys[group];
     const header = h >= 62 ? 9 : 0;
     const scale = Math.min(120/dims.w,(h-header-3)/dims.h);
     const left = (128-dims.w * scale)/2;
     const top = y + header + (h-header-dims.h*scale)/2;
     if (header) bitmap(all ? "ALL KEYS" : screen.toUpperCase()+" KEYS",5,y+2,1,fg);
     if (!keys.length) center("NO KEYS",0,y,SIZE,h,1,fg);
-    for (const [id,,x0,y0,w0,h0] of keys) {
-        const x = Math.round(left+(x0-dims.x)*scale), yy = Math.round(top+(y0-dims.y)*scale);
-        const w = Math.max(2, Math.round(w0*scale)), high = Math.max(2,Math.round(h0*scale));
-        const down = state.held.has(id) || (state.flashed.get(id) || 0) > now;
-        if (down) paint(x,yy,w,high,GREEN);
-        else strokeBox(x,yy,w,high,fg);
-        const label = screenKey(id,all || w < 12,module.keyLayer === "base" ? 0 : state.layer);
-        if (high >= 7 && w >= 5 && textWidth(label,1) <= w-2) {
-            center(label,x,yy,w,high,1,down ? BLACK : fg);
-        }
+    const cells = keys.map(([id,,x,y,w,h]) => {
+        const startX = Math.round(left+(x-dims.x)*scale), startY = Math.round(top+(y-dims.y)*scale);
+        return {id,x:startX,y:startY,w:Math.max(2,Math.round(left+(x+w-dims.x)*scale)-startX+1),
+            h:Math.max(2,Math.round(top+(y+h-dims.y)*scale)-startY+1),down:state.held.has(id) || (state.flashed.get(id) ?? 0)>now};
+    });
+    for (const cell of cells) {
+        if (cell.down && cell.w > 2 && cell.h > 2) paint(cell.x+1,cell.y+1,cell.w-2,cell.h-2,GREEN);
+    }
+    for (const cell of cells) strokeBox(cell.x,cell.y,cell.w,cell.h,fg);
+    const layer = module.keyLayer === "base" ? 0 : state.layer;
+    for (const cell of cells) {
+        const {id,x,y,w,h,down} = cell;
+        if (h < 7 || w < 5) continue;
+        const room = w - (w >= 7 ? 4 : 2);
+        const label = screenKey(id,layer).slice(0,Math.floor((room+1)/4));
+        const font = h >= 11 && textWidth(label,1,READABLE_FONT) <= room ? READABLE_FONT : COMPACT_FONT;
+        center(label,x,y,w,h,1,down ? BLACK : fg,font);
     }
     if (state.device && now < state.deviceUntil) {
         const tag = state.device.toUpperCase();
@@ -925,7 +980,9 @@ function exportProject() {
     }));
     return {
         format:ZmkProject.format,version:1,
-        display:{width:SIZE,height:SIZE,colorMode:"RGB111",palette:COLORS,origin:"top-left before rotation"},
+        display:{width:SIZE,height:SIZE,colorMode:"RGB111",palette:COLORS,origin:"top-left before rotation",
+            typography:{compactGlyphPx:[3,5],readableGlyphPx:[5,7],emphasisStrokePx:2},
+            keyGrid:{adjacentCells:"shared edge",borderPx:1}},
         screens,assets:exportedAssets,
         keyboard:{geometrySource:geometry.kind,geometryUnits:"centi-keyunit",file:config.keymap?.file ?? null,
             positions:geometry.keys.map(([index,hand,x,y,width,height,rotation,originX,originY]) => ({
