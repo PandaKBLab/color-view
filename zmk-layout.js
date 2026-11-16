@@ -16,7 +16,8 @@ const ZmkLayout = (() => {
         for (const [part] of input.matchAll(/"(?:\\.|[^"\\])*"|[{};]|[^"{};]+/g)) {
             const node = stack.at(-1);
             if (part === "{") {
-                const child = {children:[],properties:new Map(),name:value.trim().split(/:\s*/).at(-1)};
+                const parts = value.trim().split(/:\s*/);
+                const child = {children:[],properties:new Map(),name:parts.at(-1),label:parts.length > 1 ? parts[0] : ""};
                 node.children.push(child);
                 stack.push(child);
             } else if (part === "}") {
@@ -64,16 +65,42 @@ const ZmkLayout = (() => {
             }));
     }
 
+    function readEncoders(value,defines,sensors) {
+        return readBindings(value || "",defines).map(({behavior,parameters}) => {
+            if (behavior === "trans") return {clockwise:"",counterclockwise:"",transparent:true};
+            const sensor = sensors.get(behavior);
+            if (sensor?.kind === "fixed") return {clockwise:sensor.labels[0] || "",counterclockwise:sensor.labels[1] || ""};
+            const [clockwise,counterclockwise] = parameters.split(" ");
+            if (behavior === "inc_dec_kp" || sensor?.kind === "variable") {
+                return {clockwise:keyLabel(clockwise,defines),counterclockwise:keyLabel(counterclockwise,defines)};
+            }
+            return {clockwise:"",counterclockwise:""};
+        });
+    }
+
     function parseKeymap(text,name) {
         if (/^[ \t]*#[ \t]*(?:if|ifdef|ifndef|elif|else)\b/m.test(clean(text))) {
             throw Error("检测到预处理条件。请导入已按目标固件展开的 keymap");
         }
         const {root,defines} = scan(text);
-        const keymap = nodes(root).find(node => node.properties.get("compatible")?.includes('"zmk,keymap"') || node.name === "keymap");
+        const children = nodes(root);
+        const keymap = children.find(node => node.properties.get("compatible")?.includes('"zmk,keymap"') || node.name === "keymap");
+        const sensors = new Map();
+        for (const node of children) {
+            const type = node.properties.get("compatible");
+            if (!node.label || !node.properties.has("bindings")) continue;
+            if (type === '"zmk,behavior-sensor-rotate"') {
+                sensors.set(node.label,{kind:"fixed",labels:readBindings(node.properties.get("bindings"),defines).map(item=>item.label)});
+            }
+            if (type === '"zmk,behavior-sensor-rotate-var"' && readBindings(node.properties.get("bindings"),defines).every(item=>item.behavior === "kp")) {
+                sensors.set(node.label,{kind:"variable"});
+            }
+        }
         const layers = (keymap?.children ?? []).filter(node => node.properties.has("bindings")).map(node => {
             const bindings = readBindings(node.properties.get("bindings"),defines);
             const name = (node.properties.get("display-name")?.replace(/^"|"$/g,"") || node.name).slice(0,48);
-            return {name,bindings,sourceBindingCount:bindings.length};
+            const encoders = readEncoders(node.properties.get("sensor-bindings"),defines,sensors);
+            return {name,bindings,encoders,sourceBindingCount:bindings.length};
         });
         if (!layers.length || !layers[0].bindings.length) throw Error("文件中找不到 ZMK 的 keymap 层和 bindings");
         const count = Math.max(...layers.map(layer => layer.sourceBindingCount));
@@ -105,6 +132,8 @@ const ZmkLayout = (() => {
         const string = (text,length) => typeof text === "string" ? text.slice(0,length) : "";
         const layers = value.layers.map((layer,index) => ({name:string(layer.name,48)||"Layer "+index,
             sourceBindingCount:Number.isInteger(layer.sourceBindingCount) && layer.sourceBindingCount >= 0 && layer.sourceBindingCount <= size ? layer.sourceBindingCount : size,
+            encoders:Array.isArray(layer.encoders) ? layer.encoders.slice(0,16).map(item=>({clockwise:string(item?.clockwise,22),
+                counterclockwise:string(item?.counterclockwise,22),transparent:item?.transparent === true})) : [],
             bindings:layer.bindings.map(binding => ({behavior:string(binding?.behavior,48),parameters:string(binding?.parameters,180),label:string(binding?.label,22)}))}));
         const physical = value.physical;
         const keys = physical?.keys;

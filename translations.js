@@ -6,6 +6,9 @@ const ColorViewLanguage = (() => {
     const messages = new Map();
     // The first column is the Simplified Chinese source. Keep the other columns in columnOrder.
     const rows = `
+选择模块以预览和设置。|Select a module to preview and configure it.|選取模組以預覽和設定。|モジュールを選択してプレビューや設定を行います。|Wähle ein Modul für Vorschau und Einstellungen.|Sélectionnez un module pour le prévisualiser et le configurer.|Selecciona un módulo para previsualizarlo y configurarlo.|Selecione um módulo para prévia e configuração.|미리 보고 설정할 모듈을 선택하세요.|Seleziona un modulo per visualizzarlo e configurarlo.|Выберите модуль для просмотра и настройки.|Wybierz moduł, aby go zobaczyć i skonfigurować.
+模块预览|Module preview|模組預覽|モジュールのプレビュー|Modulvorschau|Aperçu du module|Vista previa del módulo|Prévia do módulo|모듈 미리보기|Anteprima del modulo|Предпросмотр модуля|Podgląd modułu
+添加到布局|Add to layout|加入版面|レイアウトに追加|Zum Layout hinzufügen|Ajouter au layout|Añadir al diseño|Adicionar ao layout|레이아웃에 추가|Aggiungi al layout|Добавить в макет|Dodaj do układu
 语言|Language|語言|言語|Sprache|Langue|Idioma|Idioma|언어|Lingua|Язык|Język
 浏览器语言|Browser language|瀏覽器語言|ブラウザーの言語|Browsersprache|Langue du navigateur|Idioma del navegador|Idioma do navegador|브라우저 언어|Lingua del browser|Язык браузера|Język przeglądarki
 显示配置|Display setup|顯示設定|画面設定|Anzeige einrichten|Réglages d’affichage|Configurar pantallas|Configurar telas|화면 설정|Configura display|Настройка экранов|Ustawienia ekranów

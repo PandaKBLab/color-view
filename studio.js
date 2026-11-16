@@ -404,51 +404,142 @@ function prepareGeometry() {
     geometry = ZmkLayout.geometry(config.keymap);
     geometry.groups = [0,1].map(hand => geometry.keys.filter(key => key[1] === hand));
     geometry.bounds = geometry.groups.map(layoutBounds);
-    const local = geometry.groups.map(touchingKeys);
-    const [left,right] = local.map(layoutBounds);
-    const rightOffset = local.every(keys=>keys.length) ? left.x+left.w-right.x : 0;
-    const whole = [...local[0],...local[1].map(([id,hand,x,y,w,h]) => [id,hand,x+rightOffset,y,w,h])];
-    geometry.displayKeys = [...local,whole];
+    const sampleControls = geometry.keys.length === 64 && (geometry.kind === "sofle-demo" || /sofle/i.test(config.keymap?.file || ""));
+    geometry.fiveWay = sampleControls ? [58,59,60,61,62] : [];
+    geometry.encoderPress = sampleControls ? 63 : null;
+    const peripheralPositions = new Set([...geometry.fiveWay,geometry.encoderPress]);
+    geometry.displayKeys = geometry.groups.map(keys => touchingKeys(keys.filter(key=>!peripheralPositions.has(key[0]))));
     geometry.displayBounds = geometry.displayKeys.map(layoutBounds);
     geometry.layerNames = layerNames();
 }
 
-function drawKeys(module,y,h,fg,bg,now,screen) {
-    const all = module.keys === "all";
-    const group = all ? 2 : Number(screen === "right");
+const keyIsActive = (id,now) => state.held.has(id) || (state.flashed.get(id) ?? 0) > now;
+
+function drawKeyGrid(group,x,y,w,h,layer,fg,now) {
     const dims = geometry.displayBounds[group];
     const keys = geometry.displayKeys[group];
-    const header = h >= 62 ? 9 : 0;
-    const scale = Math.min(120/dims.w,(h-header-3)/dims.h);
-    const left = (128-dims.w * scale)/2;
-    const top = y + header + (h-header-dims.h*scale)/2;
-    if (header) bitmap(all ? "ALL KEYS" : screen.toUpperCase()+" KEYS",5,y+2,1,fg);
-    if (!keys.length) center("NO KEYS",0,y,SIZE,h,1,fg);
+    if (!keys.length) { center("NO KEYS",x,y,w,h,1,fg); return; }
+    const scale = Math.min((w-1)/dims.w,(h-1)/dims.h);
+    const left = x+(w-1-dims.w*scale)/2;
+    const top = y+(h-1-dims.h*scale)/2;
     const cells = keys.map(([id,,x,y,w,h]) => {
         const startX = Math.round(left+(x-dims.x)*scale), startY = Math.round(top+(y-dims.y)*scale);
         return {id,x:startX,y:startY,w:Math.max(2,Math.round(left+(x+w-dims.x)*scale)-startX+1),
-            h:Math.max(2,Math.round(top+(y+h-dims.y)*scale)-startY+1),down:state.held.has(id) || (state.flashed.get(id) ?? 0)>now};
+            h:Math.max(2,Math.round(top+(y+h-dims.y)*scale)-startY+1),down:keyIsActive(id,now)};
     });
     for (const cell of cells) {
         if (cell.down && cell.w > 2 && cell.h > 2) paint(cell.x+1,cell.y+1,cell.w-2,cell.h-2,GREEN);
     }
     for (const cell of cells) strokeBox(cell.x,cell.y,cell.w,cell.h,fg);
-    const layer = module.keyLayer === "base" ? 0 : state.layer;
     for (const cell of cells) {
         const {id,x,y,w,h,down} = cell;
         if (h < 7 || w < 5) continue;
         const room = w - (w >= 7 ? 4 : 2);
-        const label = screenKey(id,layer).slice(0,Math.floor((room+1)/4));
+        const key = screenKey(id,layer);
+        const label = textWidth(key,1) <= w-2 ? key : key.slice(0,Math.floor((room+1)/4));
         const font = h >= 11 && textWidth(label,1,READABLE_FONT) <= room ? READABLE_FONT : COMPACT_FONT;
         center(label,x,y,w,h,1,down ? BLACK : fg,font);
     }
-    if (state.device && now < state.deviceUntil) {
-        const tag = state.device.toUpperCase();
-        const width = textWidth(tag,1) + 10;
-        paint(128-width-4,y+2,width,10,bg);
-        strokeBox(128-width-4,y+2,width,10,fg);
-        center(tag,128-width-4,y+2,width,10,1,fg);
+}
+
+function encoderValues(layer) {
+    if (!config.keymap) return {clockwise:"Vol+",counterclockwise:"Vol-"};
+    const current = config.keymap.layers[layer]?.encoders?.[0];
+    const base = config.keymap.layers[0]?.encoders?.[0];
+    return !current || current.transparent ? base : current;
+}
+
+function peripheralLabel(label) {
+    const short = {Enter:"EN",Mute:"MU","Vol-":"V-","Vol+":"V+",Space:"SP",Bksp:"BK"};
+    return short[label] || pixelText(label || "--","--").slice(0,2);
+}
+
+function drawDpad(x,y,color) {
+    paint(x+3,y,3,9,color);
+    paint(x,y+3,9,3,color);
+}
+
+function drawKnob(x,y,color) {
+    const rows = [28,34,65,73,65,34,28];
+    for (let row=0; row<rows.length; row++) for (let col=0; col<7; col++) {
+        if (rows[row] & (64>>col)) paint(x+col+1,y+row+1,1,1,color);
     }
+}
+
+function drawFooterValue(hand,values,x,y,w,h,fg) {
+    const tokens = [{label:hand},...values];
+    const gap = 3;
+    const width = tokens.reduce((total,{label})=>total+textWidth(label,1),0)+gap*(tokens.length-1);
+    let left = x+Math.floor((w-width)/2);
+    for (const {label,active} of tokens) {
+        const size = textWidth(label,1);
+        const top = y+Math.floor((h-5)/2);
+        if (active) paint(left-1,top-1,size+2,7,YELLOW);
+        bitmap(label,left,top,1,active ? BLACK : fg);
+        left += size+gap;
+    }
+}
+
+function drawKeys(module,y,h,fg,now,screen) {
+    const all = module.keys === "all", left = screen === "left";
+    const layer = module.keyLayer === "base" ? 0 : state.layer;
+    const rotations = encoderValues(layer);
+    const showFive = (all || left) && geometry.fiveWay.length > 0;
+    const showEncoder = (all || !left) && (geometry.encoderPress !== null || Boolean(rotations));
+    const device = now < state.deviceUntil ? state.device : "";
+    const footer = showFive || showEncoder ? 10 : 0;
+    const body = h-footer-2;
+    if (all) {
+        drawKeyGrid(0,2,y+1,50,body,layer,fg,now);
+        drawKeyGrid(1,76,y+1,50,body,layer,fg,now);
+    } else drawKeyGrid(Number(!left),left ? 2 : 32,y+1,94,body,layer,fg,now);
+
+    const middle = all ? 64 : left ? 112 : 16;
+    const iconY = y + Math.max(0,Math.min(Math.floor(body*0.24),body-20));
+    const five = showFive ? geometry.fiveWay.map(id=>({label:peripheralLabel(binding(id,layer)),active:keyIsActive(id,now)})) : [];
+    const encoder = showEncoder ? [
+        {label:peripheralLabel(rotations?.counterclockwise),active:device === "VOL-"},
+        {label:peripheralLabel(geometry.encoderPress !== null ? binding(geometry.encoderPress,layer) : ""),
+            active:device === "MUTE" || keyIsActive(geometry.encoderPress,now)},
+        {label:peripheralLabel(rotations?.clockwise),active:device === "VOL+"},
+    ] : [];
+    if (showFive) drawDpad(middle-(all ? 11 : 4),iconY,five.some(item=>item.active) ? YELLOW : fg);
+    if (showEncoder) drawKnob(middle+(all ? 2 : -4),iconY,encoder.some(item=>item.active) ? YELLOW : fg);
+
+    const badgeY = iconY + (showFive || showEncoder ? 12 : 2);
+    const badge = "L" + layer;
+    const badgeWidth = Math.max(15,textWidth(badge,1)+4);
+    paint(middle-Math.floor(badgeWidth/2),badgeY,badgeWidth,8,GREEN);
+    center(badge,middle-Math.floor(badgeWidth/2),badgeY,badgeWidth,8,1,BLACK);
+    if (device && /^(SC |CLICK|MOVE|SCROLL)/.test(device) && badgeY+16 < y+body) {
+        center(device.slice(0,5),middle-11,badgeY+9,22,7,1,fg);
+    }
+    if (footer) {
+        const footerY = y+h-footer;
+        paint(2,footerY,124,1,fg);
+        if (showFive) drawFooterValue("L",five,0,footerY+1,all ? 64 : 128,footer-1,fg);
+        if (showEncoder) drawFooterValue("R",encoder,all ? 64 : 0,footerY+1,all ? 64 : 128,footer-1,fg);
+    }
+}
+
+function drawModule(module,y,screenColor,now,screen) {
+    const {height:h,type} = module;
+    if (type === "spacer") return;
+    pen.save();
+    pen.beginPath();
+    pen.rect(0,y,SIZE,h);
+    pen.clip();
+    const {background:bg,foreground:fg} = moduleColors(module,screenColor);
+    if (bg !== screenColor) paint(0,y,SIZE,h,bg);
+    if (type === "status") drawStatus(module,y,h,fg);
+    if (type === "mods") drawMods(y,h,fg);
+    if (type === "keys") drawKeys(module,y,h,fg,now,screen);
+    if (TYPES[type].category === "animation") drawAnimation(module,y,h,fg,now);
+    if (type === "layer") drawValue(y,h,fg,"LAYER "+state.layer,pixelText(geometry.layerNames[state.layer] || "","LAYER "+state.layer));
+    if (type === "last") drawValue(y,h,fg,"LAST KEY",pixelText(state.last || "-","-"));
+    if (type === "wpm") drawValue(y,h,fg,"WPM",String(wpm()));
+    if (type === "wave") drawWave(y,h,fg,now);
+    pen.restore();
 }
 
 function drawScreen(now,screen) {
@@ -459,24 +550,7 @@ function drawScreen(now,screen) {
     paint(0,0,SIZE,SIZE,screenColor);
     let y = 0;
     for (const module of s.modules) {
-        const {height:h, type} = module;
-        if (type !== "spacer") {
-            pen.save();
-            pen.beginPath();
-            pen.rect(0,y,SIZE,h);
-            pen.clip();
-            const {background:bg,foreground:fg} = moduleColors(module,screenColor);
-            if (bg !== screenColor) paint(0,y,SIZE,h,bg);
-            if (type === "status") drawStatus(module,y,h,fg);
-            if (type === "mods") drawMods(y,h,fg);
-            if (type === "keys") drawKeys(module,y,h,fg,bg,now,screen);
-            if (TYPES[type].category === "animation") drawAnimation(module,y,h,fg,now);
-            if (type === "layer") drawValue(y,h,fg,"LAYER "+state.layer,pixelText(geometry.layerNames[state.layer] || "","LAYER "+state.layer));
-            if (type === "last") drawValue(y,h,fg,"LAST KEY",pixelText(state.last || "-","-"));
-            if (type === "wpm") drawValue(y,h,fg,"WPM",String(wpm()));
-            if (type === "wave") drawWave(y,h,fg,now);
-            pen.restore();
-        }
+        drawModule(module,y,screenColor,now,screen);
         y += module.height;
     }
     ctx.setTransform(s.rotation === 180 ? -1 : 1,0,0,s.rotation === 180 ? -1 : 1,
@@ -488,6 +562,7 @@ function drawScreen(now,screen) {
 function drawScreens(now) {
     while (state.recent.length && now - state.recent[0] >= 60000) state.recent.shift();
     for (const hand of SIDES) drawScreen(now,hand);
+    drawLibraryPreview(now);
 }
 
 const wpm = () => Math.round(state.recent.length/5);
@@ -524,7 +599,9 @@ function insertModule(template) {
         return false;
     }
     const insertAt = selectedIndex < 0 ? modules.length : selectedIndex + 1;
-    modules.splice(insertAt,0,createModule(template.type,template));
+    const module = createModule(template.type,template);
+    if (assets.has(template)) assets.set(module,assets.get(template));
+    modules.splice(insertAt,0,module);
     selectedIndex = insertAt;
     layoutChanged();
     return true;
@@ -600,22 +677,24 @@ function screenHotspots(hand) {
     }) : [];
 }
 
-function moduleOptions(module, maxHeight) {
+function moduleOptions(module,maxHeight,onChange,scope="") {
     if (!module) return [];
     const heightRow = document.createElement("label");
     heightRow.className = "option-row";
     heightRow.textContent = t("高度（px）");
     const height = document.createElement("input");
-    Object.assign(height, {id:"selected-height",type:"number",step:1,required:true,
+    Object.assign(height, {id:scope+"selected-height",type:"number",step:1,required:true,
         min:TYPES[module.type].min,max:maxHeight,value:module.height});
     height.onchange = () => {
         if (!height.validity.valid) {
-            note(t("可设高度为 {min}–{max} px",{min:height.min,max:height.max}));
+            const message = t("可设高度为 {min}–{max} px",{min:height.min,max:height.max});
+            if (scope) by("library-message").textContent = message;
+            else note(message);
             height.value = module.height;
             return;
         }
         module.height = height.valueAsNumber;
-        layoutChanged(height.id);
+        onChange(height.id);
     };
     heightRow.append(height);
     const options = [heightRow];
@@ -625,9 +704,9 @@ function moduleOptions(module, maxHeight) {
         fields.background = ["背景颜色",THEME_COLORS];
     }
     for (const [key,[label,choices]] of Object.entries(fields)) {
-        options.push(optionSelect(label,key,choices,module[key],(value,id) => {
+        options.push(optionSelect(label,scope+key,choices,module[key],(value,id) => {
             module[key] = value;
-            layoutChanged(id);
+            onChange(id);
         }));
     }
     if (module.type === "asset") {
@@ -691,42 +770,102 @@ function refreshControls(focus) {
         remove.classList.add("danger");
         by("selected-actions").replaceChildren(up,down,remove);
     }
-    by("module-options").replaceChildren(...moduleOptions(module,remaining + (module?.height ?? 0)));
+    by("module-options").replaceChildren(...moduleOptions(module,remaining + (module?.height ?? 0),layoutChanged));
     if (focus) by(focus)?.focus();
     drawScreens(performance.now());
 }
 
-function renderLibrary() {
+const libraryTabs = {all:"全部分类",...CATEGORIES,custom:"自建模块"};
+let libraryCategory = "all";
+let libraryChoice;
+let libraryDraft;
+
+function chooseLibraryModule(module,choice) {
+    libraryChoice = choice;
+    libraryDraft = module ? createModule(module.type,module) : undefined;
+}
+
+function renderLibraryTabs(focus) {
+    const keys = Object.keys(libraryTabs);
+    const select = category => {
+        libraryCategory = category;
+        chooseLibraryModule();
+        renderLibrary("library-tab-"+category);
+    };
+    const tabs = keys.map((category,index) => {
+        const button = toolButton(libraryTabs[category],()=>select(category));
+        button.id = "library-tab-"+category;
+        button.setAttribute("role","tab");
+        button.setAttribute("aria-controls","library-list-panel");
+        button.setAttribute("aria-selected",String(category === libraryCategory));
+        button.tabIndex = category === libraryCategory ? 0 : -1;
+        button.onkeydown = event => {
+            const next = {ArrowLeft:(index+keys.length-1)%keys.length,ArrowRight:(index+1)%keys.length,Home:0,End:keys.length-1}[event.key];
+            if (next === undefined) return;
+            event.preventDefault();
+            select(keys[next]);
+        };
+        return button;
+    });
+    by("library-tabs").replaceChildren(...tabs);
+    by("library-list-panel").setAttribute("aria-labelledby","library-tab-"+libraryCategory);
+    if (focus) by(focus)?.focus();
+}
+
+function drawLibraryPreview(now) {
+    if (!libraryDraft || !by("module-library").open) return;
+    const canvas = by("library-lcd");
+    const height = libraryDraft.height;
+    if (canvas.height !== height) canvas.height = height;
+    const screenColor = settings().theme === "dark" ? BLACK : WHITE;
+    paint(0,0,SIZE,height,screenColor);
+    drawModule(libraryDraft,0,screenColor,now,side);
+    canvas.getContext("2d").drawImage(back,0,0,SIZE,height,0,0,SIZE,height);
+}
+
+function renderLibraryDetail(focus) {
+    by("library-selection").hidden = !libraryDraft;
+    by("library-detail-hint").hidden = Boolean(libraryDraft);
+    by("library-message").textContent = "";
+    if (!libraryDraft) return;
+    by("library-module-name").textContent = t(libraryDraft.name)+" · 128 × "+libraryDraft.height+" px";
+    by("library-options").replaceChildren(...moduleOptions(libraryDraft,SIZE,renderLibraryDetail,"library-"));
+    drawLibraryPreview(performance.now());
+    if (focus) by(focus)?.focus();
+}
+
+function renderLibrary(focus) {
     by("library-title").textContent = t("模块库")+" · "+t(SIDE_LABEL[side]);
-    const category = by("library-category").value;
+    renderLibraryTabs();
     const builtIn = Object.keys(TYPES).filter(type => type !== "spacer").map(type => createModule(type));
     const entries = [...builtIn.map(module => ({module,saved:false})), ...config.library.map(module => ({module,saved:true}))];
     const rows = [];
     for (const {module,saved} of entries) {
         const group = TYPES[module.type].category;
-        if (category === "custom" ? !saved : category !== "all" && category !== group) continue;
+        if (libraryCategory === "custom" ? !saved : libraryCategory !== "all" && libraryCategory !== group) continue;
+        const choice = saved ? module : module.type;
         const row = document.createElement("div");
         row.className = "library-row";
-        const label = document.createElement("div");
+        row.dataset.selected = String(choice === libraryChoice);
+        const entry = toolButton("",() => {
+            chooseLibraryModule(module,choice);
+            renderLibrary(entry.id);
+        },t(module.name));
+        entry.className = "library-entry";
+        entry.id = "library-entry-"+rows.length;
+        entry.setAttribute("aria-pressed",row.dataset.selected);
         const name = document.createElement("strong");
         name.textContent = t(module.name);
         const meta = document.createElement("small");
         meta.textContent = t(CATEGORIES[group]) + " · 128 × " + module.height + " px" + (saved ? " · " + t("自定义") : "");
-        label.append(name,meta);
-        const add = toolButton("添加",() => {
-            if (insertModule(module)) {
-                by("module-library").close();
-                by("module-"+side+"-"+selectedIndex)?.focus();
-            }
-        },t("添加 {module}",{module:t(module.name)}));
-        add.className = "button";
-        row.append(label,add);
+        entry.append(name,meta);
+        row.append(entry);
         if (saved) {
             const remove = toolButton("×",() => {
                 config.library = config.library.filter(item => item !== module);
                 save();
-                renderLibrary();
-                by("library-category").focus();
+                if (choice === libraryChoice) chooseLibraryModule();
+                renderLibrary("library-tab-"+libraryCategory);
             },t("删除 {module}",{module:t(module.name)}));
             remove.className = "button";
             row.append(remove);
@@ -735,16 +874,14 @@ function renderLibrary() {
     }
     by("library-entries").replaceChildren(...rows);
     by("library-empty").hidden = rows.length > 0;
-    by("library-message").textContent = "";
+    renderLibraryDetail();
+    if (focus) by(focus)?.focus();
 }
 
 const builderType = by("builder-type");
-const libraryFilter = by("library-category");
 function populateLibraryMenus() {
-    libraryFilter.replaceChildren(new Option(t("全部分类"),"all"));
     builderType.replaceChildren();
     for (const [category,label] of Object.entries(CATEGORIES)) {
-        libraryFilter.add(new Option(t(label),category));
         const group = document.createElement("optgroup");
         group.label = t(label);
         for (const [type,template] of Object.entries(TYPES)) {
@@ -752,9 +889,14 @@ function populateLibraryMenus() {
         }
         builderType.append(group);
     }
-    libraryFilter.add(new Option(t("自建模块"),"custom"));
 }
-libraryFilter.onchange = renderLibrary;
+
+by("library-add").onclick = () => {
+    if (libraryDraft && insertModule(libraryDraft)) {
+        by("module-library").close();
+        by("module-"+side+"-"+selectedIndex)?.focus();
+    }
+};
 
 let builderDraft;
 let assetTarget;
@@ -772,9 +914,11 @@ function initBuilder() {
 builderType.onchange = initBuilder;
 function openLibrary(hand) {
     if (side !== hand) selectModule(hand,-1);
-    libraryFilter.value = "all";
+    libraryCategory = "all";
+    chooseLibraryModule();
     renderLibrary();
     by("module-library").showModal();
+    by("library-tab-all").focus();
 }
 
 function insertSpacer(hand) {
@@ -802,7 +946,8 @@ by("builder-form").onsubmit = e => {
         config.library.push(module);
         save();
         by("module-builder").close();
-        libraryFilter.value = "custom";
+        libraryCategory = "custom";
+        chooseLibraryModule(module,module);
         renderLibrary();
         by("module-library").showModal();
     } catch (error) { by("builder-error").textContent = t(error.message); }
@@ -819,7 +964,7 @@ function createKeyboard() {
         button.type = "button";
         button.className = "key";
         button.dataset.position = id;
-        button.dataset.deviceKey = String(geometry.kind === "sofle-demo" && id>=58);
+        button.dataset.deviceKey = String(geometry.fiveWay.includes(id) || geometry.encoderPress === id);
         const box = geometry.bounds[hand];
         Object.assign(button.style,{left:(x-box.x+25)/(box.w+50)*100+"%",top:(y-box.y+25)/(box.h+50)*100+"%",
             width:w/(box.w+50)*100+"%",height:h/(box.h+50)*100+"%",transform:"rotate("+angle+"deg)"});
@@ -880,7 +1025,9 @@ function press(id) {
         fnReturn = {layer:state.layer,id};
         setLayer(config.keymap ? target : 1);
     }
-    if (geometry.kind === "sofle-demo" && id >= 58) peripheral(["↑","↓","←","→","ENTER","MUTE"][id-58]);
+    const dpad = geometry.fiveWay.indexOf(id);
+    if (dpad >= 0) peripheral(["↑","↓","←","→","ENTER"][dpad]);
+    else if (geometry.encoderPress === id) peripheral("MUTE");
     else showInput("按键 {label}",label);
 }
 
@@ -932,8 +1079,8 @@ function syncKeymapControls() {
     if (keymap) parts.push(t("{count} 层",{count:keymap.layers.length}));
     if (shortLayers) parts.push(t("{count} 层末尾有空位",{count:shortLayers}));
     by("keymap-info").textContent = parts.filter(Boolean).join(" · ");
-    by("left-hw").textContent = geometry.kind === "sofle-demo" && geometry.keys.length === 64 ? t("五向开关") : "";
-    by("right-hw").textContent = config.trackball ? t("轨迹球模拟") : geometry.kind === "sofle-demo" && geometry.keys.length === 64 ? t("旋钮") : "";
+    by("left-hw").textContent = geometry.fiveWay.length ? t("五向开关") : "";
+    by("right-hw").textContent = config.trackball ? t("轨迹球模拟") : geometry.encoderPress !== null || encoderValues(0) ? t("旋钮") : "";
 }
 
 function setKeymap(keymap) {
@@ -982,13 +1129,15 @@ function exportProject() {
         format:ZmkProject.format,version:1,
         display:{width:SIZE,height:SIZE,colorMode:"RGB111",palette:COLORS,origin:"top-left before rotation",
             typography:{compactGlyphPx:[3,5],readableGlyphPx:[5,7],emphasisStrokePx:2},
-            keyGrid:{adjacentCells:"shared edge",borderPx:1}},
+            keyGrid:{adjacentCells:"shared edge",borderPx:1,layerBadge:"L plus the zero-based layer index",peripheralValues:"module footer"}},
         screens,assets:exportedAssets,
         keyboard:{geometrySource:geometry.kind,geometryUnits:"centi-keyunit",file:config.keymap?.file ?? null,
+            peripherals:{fiveWayPositions:geometry.fiveWay,encoderPressPosition:geometry.encoderPress},
             positions:geometry.keys.map(([index,hand,x,y,width,height,rotation,originX,originY]) => ({
                 index,side:SIDES[hand],x,y,width,height,rotation,originX,originY,
             })),
-            layers:config.keymap?.layers ?? [0,1].map(layer => ({name:geometry.layerNames[layer],bindings:geometry.keys.map(([id]) => ({label:binding(id,layer)}))})),
+            layers:config.keymap?.layers ?? [0,1].map(layer => ({name:geometry.layerNames[layer],encoders:[encoderValues(layer)],
+                bindings:geometry.keys.map(([id]) => ({label:binding(id,layer)}))})),
         },
         keymap:config.keymap ? {file:config.keymap.file,layout:config.keymap.layout,physical:config.keymap.physical} : null,
         trackball:config.trackball,library:config.library,integration:ZmkProject.integration,
@@ -1167,7 +1316,7 @@ each("[data-lock]").forEach(b=>b.onclick=()=>{
     state[flag] = !state[flag];
 });
 each("[data-device]").forEach(b=>b.onclick=()=>{
-    if (b.dataset.device === "MUTE" && geometry.kind === "sofle-demo" && keyNodes.has(63)) { press(63); release(63); }
+    if (b.dataset.device === "MUTE" && geometry.encoderPress !== null) { press(geometry.encoderPress); release(geometry.encoderPress); }
     else peripheral(b.dataset.device);
 });
 by("scroll-mode").onclick = e => {
@@ -1240,8 +1389,13 @@ by("asset-file").onchange = async e => {
         assets.set(module,frames);
         state.kicked = performance.now();
         if (settings().modules[selectedIndex] === module) refreshControls();
+        if (libraryDraft === module) renderLibraryDetail();
         note(t("已转换为 128×128 八色素材 · {count} 帧",{count:frames.length}));
-    } catch (error) { note(t("素材读取失败")+" · "+t(error.message)); }
+    } catch (error) {
+        const message = t("素材读取失败")+" · "+t(error.message);
+        if (libraryDraft === module && by("module-library").open) by("library-message").textContent = message;
+        else note(message);
+    }
     finally { e.target.value = ""; }
 };
 
