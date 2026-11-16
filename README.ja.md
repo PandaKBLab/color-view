@@ -14,7 +14,7 @@ Color Viewは、自作キーボード向けの1.33インチ、128 × 128ピク�
 
 ## 画面レイアウトツール
 
-[Color View Studio を開く](https://pandakblab.github.io/color-view/)（中国語 UI）。ステータス、キーマップ、アニメーション、入力反応のモジュールを組み合わせ、128 × 128 ピクセル、8 色でプレビューできます。レイアウトは JSON、プレビューは PNG で保存できます。ZMK への組み込みは [ZMK 統合ガイド](docs/zmk.md)を参照してください。
+[Color View Studio を開く](https://pandakblab.github.io/color-view/)と、左右の画面を設定し、8 色でプレビューできます。ZMK 用のレイアウト JSON や PNG も保存できます。UI はブラウザーの言語に従い、12 言語に対応します。ファームウェアの設定は [ZMK 統合ガイド](docs/zmk.md)を参照してください。
 
 ## CADライブラリのダウンロード
 

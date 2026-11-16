@@ -14,7 +14,7 @@ Color View是面向DIY键盘的显示模块，尺寸1.33英寸、分辨率128 ×
 
 ## 屏幕配置工具
 
-[打开 Color View Studio](https://pandakblab.github.io/color-view/)，组合状态栏、按键图、动图和交互模块，实时预览 128 × 128 八色画面。网页可导出布局 JSON 和预览 PNG。ZMK 需要单独集成，参见 [ZMK 集成说明](docs/zmk.md)。
+[打开 Color View Studio](https://pandakblab.github.io/color-view/)，同时配置左右屏、预览八色画面并导出 ZMK 布局 JSON 或 PNG。界面默认跟随浏览器语言，支持 12 种语言。固件集成参见 [ZMK 集成说明](docs/zmk.md)。
 
 ## 封装库下载
 

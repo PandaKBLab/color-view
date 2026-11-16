@@ -14,7 +14,7 @@ Color View is a 1.33-inch, 128 × 128 Memory LCD module for DIY keyboards. It su
 
 ## Display layout tool
 
-[Open Color View Studio](https://pandakblab.github.io/color-view/) (Chinese interface). Combine status, keymap, animation, and interaction modules in a live 128 × 128, eight-color preview. Export the layout as JSON or the preview as PNG. See the [ZMK integration notes](docs/zmk.md) for firmware setup.
+[Open Color View Studio](https://pandakblab.github.io/color-view/) to configure both displays, preview layouts in eight colors, and export a ZMK layout JSON or PNG. The interface follows your browser language and supports 12 languages. See the [ZMK integration notes](docs/zmk.md) for firmware setup.
 
 ## CAD downloads
 
