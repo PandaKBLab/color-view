@@ -136,7 +136,7 @@ function validate(raw) {
         if (totalHeight(modules) > SIZE) throw Error("模块总高度超过 128 px");
         result.screens[side] = {
             preset:["status","pixel","keys"].includes(value.preset) ? value.preset : "custom",
-            theme:value.theme === "dark" ? "dark" : "light", rotation:value.rotation === 180 ? 180 : 0,
+            theme:value.theme === "light" ? "light" : "dark", rotation:value.rotation === 180 ? 180 : 0,
             enabled:raw.version === 3 ? value.enabled !== false : !(raw.hardware === "DB" && side === "right"), modules,
         };
     }
@@ -280,10 +280,6 @@ const DISCONNECTED_MARK = [
     "##..##", ".####.", "..##..",
     ".####.", "##..##",
 ];
-const BLUETOOTH_PROFILE_FONT = {width:5,height:7,glyphs:{
-    1:[12,28,12,12,12,12,30], 2:[14,27,3,6,12,24,31], 3:[30,3,3,14,3,3,30],
-    4:[11,27,27,27,31,3,3], 5:[31,24,24,30,3,3,30],
-}};
 const USB_CONNECTED_ICON = [
     ".....+.....", "....+++....", "...+++++...",
     ".....#.....", ".++..#..++.", ".++..#..++.",
@@ -302,6 +298,7 @@ const CHARGING_ICON = [
     "...###....", "..##......", "..#.......",
 ];
 const BATTERY_LEVEL_COLORS = [RED, RED, YELLOW, GREEN, GREEN];
+const STATUS_COLUMNS = {connectionIcon:5,connectionText:18,power:45,charging:63,battery:79,rightEdge:124};
 
 function drawStatusPixels(rows,x,y,primary,accent) {
     const inks = {"#":primary,"+":accent};
@@ -323,7 +320,8 @@ function drawBatteryGauge(x,y,bars,outline,fill) {
     for (let bar = 0; bar < bars; bar++) paint(x+2+3*bar,y+2,2,8,fill);
 }
 
-function drawStatus(module, y, h, fg) {
+function drawStatus(module,y,h,fg) {
+    const columns = STATUS_COLUMNS;
     const iconY = y + Math.floor((h-STATUS_ICON_HEIGHT)/2);
     const shortTextY = y + Math.floor((h-COMPACT_FONT.height)/2);
     const readableTextY = y + Math.floor((h-READABLE_FONT.height)/2);
@@ -334,41 +332,42 @@ function drawStatus(module, y, h, fg) {
 
     if (module.icon === "icons") {
         if (state.endpoint === "USB") {
-            drawStatusPixels(USB_CONNECTED_ICON,5,iconY,fg,linkColor);
+            drawStatusPixels(USB_CONNECTED_ICON,columns.connectionIcon,iconY,fg,linkColor);
         } else if (state.endpoint === "BLE") {
-            drawStatusPixels(BLUETOOTH_ICON,5,iconY,linkColor);
-            bitmap(state.profile,16,iconY+2,1,fg,BLUETOOTH_PROFILE_FONT);
+            drawStatusPixels(BLUETOOTH_ICON,columns.connectionIcon,iconY,linkColor);
         } else {
-            drawStatusPixels(BLUETOOTH_ICON,5,iconY,fg);
-            drawStatusPixels(DISCONNECTED_MARK,16,iconY+3,RED);
+            drawStatusPixels(DISCONNECTED_MARK,columns.connectionIcon+2,iconY+3,RED);
         }
-    }
-    if (module.icon === "badge") {
+    } else if (module.icon === "badge") {
         const badgeY = y + Math.floor((h-9)/2);
-        paint(5,badgeY,10,9,linkColor);
-        center(link[0],5,badgeY,10,9,1,linkColor === BLACK || linkColor === "#0000ff" ? WHITE : BLACK);
-        bitmap(link,18,readableTextY,1,fg,READABLE_FONT);
+        paint(columns.connectionIcon,badgeY,10,9,linkColor);
+        const ink = linkColor === BLACK || linkColor === "#0000ff" ? WHITE : BLACK;
+        center(link[0],columns.connectionIcon,badgeY,10,9,1,ink);
     }
-    if (module.icon === "text") bitmap(link,5,readableTextY,1,linkColor,READABLE_FONT);
+    if (module.icon !== "none") {
+        const ink = module.icon === "text" ? linkColor : fg;
+        bitmap(link,columns.connectionText,readableTextY,1,ink,READABLE_FONT);
+    }
+
     if (module.power === "text") {
-        if (state.usb) bitmap("PWR",44,shortTextY,1,fg);
-        if (state.charge) bitmap("CHG",62,shortTextY,1,fg);
+        if (state.usb) bitmap("PWR",columns.power,shortTextY,1,fg);
+        if (state.charge) bitmap("CHG",columns.charging,shortTextY,1,fg);
+    } else if (module.power === "icons") {
+        if (state.usb) drawStatusPixels(USB_POWER_ICON,columns.power,readableTextY,fg);
+        if (state.charge) drawStatusPixels(CHARGING_ICON,columns.charging,iconY,YELLOW);
     }
-    if (module.power === "icons") {
-        if (state.usb) drawStatusPixels(USB_POWER_ICON,45,readableTextY,fg);
-        if (state.charge) drawStatusPixels(CHARGING_ICON,64,iconY,YELLOW);
-    }
+
     if (module.battery === "gauge" || module.battery === "both") {
-        const x = module.battery === "both" ? 79 : 106;
         const bars = Math.ceil(state.battery/25);
         const outline = levelColor && bars === 0 ? RED : batteryColor;
         const low = module.batteryColor === "auto" && state.battery < 20;
         const fill = levelColor ? BATTERY_LEVEL_COLORS[bars] : low ? RED : batteryColor;
-        drawBatteryGauge(x,iconY,bars,outline,fill);
+        drawBatteryGauge(columns.battery,iconY,bars,outline,fill);
     }
     if (module.battery === "percent" || module.battery === "both") {
         const number = state.battery + "%";
-        bitmap(number,124-textWidth(number,1,READABLE_FONT),readableTextY,1,batteryColor,READABLE_FONT);
+        const x = columns.rightEdge - textWidth(number,1,READABLE_FONT);
+        bitmap(number,x,readableTextY,1,batteryColor,READABLE_FONT);
     }
     if (h > STATUS_ICON_HEIGHT) paint(4,y+h-1,120,1,fg);
 }
@@ -1319,8 +1318,8 @@ each("[data-screen-power]").forEach(input => input.onchange = () => {
     save(); refreshControls();
 });
 function applyPreset(hand,name,scope,enable) {
-    const {theme,rotation,enabled} = config.screens[hand];
-    const next = {...preset(name),theme,rotation,enabled:enable ?? enabled};
+    const {rotation,enabled} = config.screens[hand];
+    const next = {...preset(name),rotation,enabled:enable ?? enabled};
     if (scope) next.modules.find(isKeyModule).keys = scope;
     config.screens[hand] = next;
 }
