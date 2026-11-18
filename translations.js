@@ -154,6 +154,7 @@ WPM 波形|WPM graph|WPM 波形|WPM グラフ|WPM-Diagramm|Graphique WPM|Gráfic
 电池格|Battery gauge|電池格|バッテリーゲージ|Akkubalken|Jauge|Indicador|Indicador|배터리 게이지|Indicatore|Индикатор заряда|Wskaźnik baterii
 电池格＋百分比|Gauge and percentage|電池格＋百分比|ゲージとパーセント|Balken und Prozent|Jauge et pourcentage|Indicador y porcentaje|Indicador e porcentagem|게이지와 백분율|Indicatore e percentuale|Индикатор и процент|Wskaźnik i procent
 电量颜色|Battery color|電量色彩|バッテリーの色|Akkufarbe|Couleur de la batterie|Color de batería|Cor da bateria|배터리 색상|Colore batteria|Цвет батареи|Kolor baterii
+按电量配色|By battery level|按電量配色|残量に応じた色|Nach Akkustand|Selon le niveau de batterie|Según el nivel de batería|Por nível de bateria|잔량에 따른 색상|In base al livello batteria|По уровню заряда|Według poziomu baterii
 供电与充电|Power and charging|供電與充電|給電と充電|Strom und Laden|Alimentation et charge|Alimentación y carga|Energia e carregamento|전원 및 충전|Alimentazione e carica|Питание и зарядка|Zasilanie i ładowanie
 插头 / 闪电|Plug / lightning|插頭 / 閃電|プラグ / 稲妻|Stecker / Blitz|Prise / éclair|Enchufe / rayo|Plugue / raio|플러그 / 번개|Spina / fulmine|Вилка / молния|Wtyczka / błyskawica
 键位范围|Key coverage|鍵位範圍|キーの範囲|Tastenbereich|Zone de touches|Alcance de teclas|Abrangência das teclas|키 표시 범위|Ambito tasti|Область клавиш|Zakres klawiszy

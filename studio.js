@@ -1,6 +1,7 @@
 "use strict";
 
 const SIZE = 128;
+const STATUS_ICON_HEIGHT = 12;
 const COLORS = ["#000000", "#ffffff", "#ff0000", "#00ff00", "#0000ff", "#00ffff", "#ff00ff", "#ffff00"];
 const [BLACK, WHITE, RED, GREEN, , CYAN, , YELLOW] = COLORS;
 const COLOR_LABELS = Object.fromEntries(COLORS.map((color,index) => [color,["黑","白","红","绿","蓝","青","品红","黄"][index]]));
@@ -38,7 +39,7 @@ const READABLE_FONT = {width:5,height:7,glyphs:READABLE_PIXELS};
 const VALUE_STYLES = [[READABLE_FONT,2],[COMPACT_FONT,2],[READABLE_FONT,1],[COMPACT_FONT,1]];
 const CATEGORIES = {status:"状态栏", keys:"按键图", animation:"动图", interaction:"交互"};
 const TYPES = {
-    status:{category:"status", name:"连接与电量", height:16, min:12},
+    status:{category:"status", name:"连接与电量", height:16, min:STATUS_ICON_HEIGHT},
     keys:{category:"keys", name:"键位与外设", height:64, min:32},
     sofleModKeys:{category:"keys", name:"Sofle Mod 按键", height:64, min:32},
     sprite:{category:"animation", name:"方块鸡", height:48, min:16},
@@ -54,9 +55,9 @@ const keyOptions = {keys:["键位范围",{local:"本侧",all:"两半键盘"}],ke
 const OPTIONS = {
     status:{icon:["连接图标",{icons:"像素图标与档位",badge:"字母徽标与档位",text:"仅文字",none:"隐藏"}],
         linkColor:["连接颜色",{[CYAN]:"青",...COLOR_LABELS,auto:"跟随模块文字"}],
-        battery:["电量图标",{percent:"百分比",gauge:"电池格",both:"电池格＋百分比",none:"隐藏"}],
-        batteryColor:["电量颜色",{auto:"跟随模块文字",...COLOR_LABELS}],
-        power:["供电与充电",{text:"PWR / CHG",icons:"插头 / 闪电",none:"隐藏"}]},
+        battery:["电量图标",{both:"电池格＋百分比",gauge:"电池格",percent:"百分比",none:"隐藏"}],
+        batteryColor:["电量颜色",{level:"按电量配色",auto:"跟随模块文字",...COLOR_LABELS}],
+        power:["供电与充电",{icons:"插头 / 闪电",text:"PWR / CHG",none:"隐藏"}]},
     keys:keyOptions,
     sofleModKeys:{...keyOptions,keys:["键位范围",{all:"两半键盘",local:"本侧"}]},
     sprite:{animation:["播放方式",{loop:"循环",key:"按键触发",still:"静态"}]},
@@ -269,45 +270,107 @@ function animationFrame(frames, mode, now) {
     return frames[0].canvas;
 }
 
+const BLUETOOTH_ICON = [
+    "....##...", "....###..", "....#.##.",
+    "##..#..##", ".##.#.##.", "..####...",
+    "..####...", ".##.#.##.", "##..#..##",
+    "....#.##.", "....###..", "....##...",
+];
+const DISCONNECTED_MARK = [
+    "##..##", ".####.", "..##..",
+    ".####.", "##..##",
+];
+const BLUETOOTH_PROFILE_FONT = {width:5,height:7,glyphs:{
+    1:[12,28,12,12,12,12,30], 2:[14,27,3,6,12,24,31], 3:[30,3,3,14,3,3,30],
+    4:[11,27,27,27,31,3,3], 5:[31,24,24,30,3,3,30],
+}};
+const USB_CONNECTED_ICON = [
+    ".....+.....", "....+++....", "...+++++...",
+    ".....#.....", ".++..#..++.", ".++..#..++.",
+    "..#..#..#..", "...#.#.#...", "....###....",
+    ".....#.....", "....###....", "....###....",
+];
+const USB_POWER_ICON = [
+    ".#.#.", ".#.#.", "#####",
+    "#...#", ".###.", "..#..",
+    "..#..",
+];
+const CHARGING_ICON = [
+    ".....#####", "....#####.", "...#####..",
+    "...####...", "..####....", ".########.",
+    "########..", "....####..", "...####...",
+    "...###....", "..##......", "..#.......",
+];
+const BATTERY_LEVEL_COLORS = [RED, RED, YELLOW, GREEN, GREEN];
+
+function drawStatusPixels(rows,x,y,primary,accent) {
+    const inks = {"#":primary,"+":accent};
+    for (const [row, pixels] of rows.entries()) {
+        for (let column = 0; column < pixels.length; column++) {
+            const ink = inks[pixels[column]];
+            if (ink) paint(x+column,y+row,1,1,ink);
+        }
+    }
+}
+
+function drawBatteryGauge(x,y,bars,outline,fill) {
+    paint(x+1,y,13,1,outline);
+    paint(x+1,y+11,13,1,outline);
+    paint(x,y+1,1,10,outline);
+    paint(x+14,y+1,1,10,outline);
+    paint(x+15,y+4,2,4,outline);
+    paint(x+17,y+5,1,2,outline);
+    for (let bar = 0; bar < bars; bar++) paint(x+2+3*bar,y+2,2,8,fill);
+}
+
 function drawStatus(module, y, h, fg) {
-    const top = y + Math.floor((h - 16) / 2);
+    const iconY = y + Math.floor((h-STATUS_ICON_HEIGHT)/2);
+    const shortTextY = y + Math.floor((h-COMPACT_FONT.height)/2);
+    const readableTextY = y + Math.floor((h-READABLE_FONT.height)/2);
     const link = state.endpoint === "BLE" ? "BT" + state.profile : state.endpoint;
     const linkColor = module.linkColor === "auto" ? fg : module.linkColor;
-    const batteryColor = module.batteryColor === "auto" ? fg : module.batteryColor;
-    if (module.icon === "icons") drawIcon(state.endpoint,6,top+3,linkColor);
-    if (module.icon === "badge") {
-        paint(5,top+3,10,9,linkColor);
-        center(link[0],5,top+3,10,9,1,linkColor === BLACK || linkColor === "#0000ff" ? WHITE : BLACK);
+    const levelColor = module.batteryColor === "level";
+    const batteryColor = levelColor || module.batteryColor === "auto" ? fg : module.batteryColor;
+
+    if (module.icon === "icons") {
+        if (state.endpoint === "USB") {
+            drawStatusPixels(USB_CONNECTED_ICON,5,iconY,fg,linkColor);
+        } else if (state.endpoint === "BLE") {
+            drawStatusPixels(BLUETOOTH_ICON,5,iconY,linkColor);
+            bitmap(state.profile,16,iconY+2,1,fg,BLUETOOTH_PROFILE_FONT);
+        } else {
+            drawStatusPixels(BLUETOOTH_ICON,5,iconY,fg);
+            drawStatusPixels(DISCONNECTED_MARK,16,iconY+3,RED);
+        }
     }
-    if (module.icon !== "none") bitmap(link,module.icon === "text" ? 5 : 18,top+4,1,module.icon === "text" ? linkColor : fg,READABLE_FONT);
+    if (module.icon === "badge") {
+        const badgeY = y + Math.floor((h-9)/2);
+        paint(5,badgeY,10,9,linkColor);
+        center(link[0],5,badgeY,10,9,1,linkColor === BLACK || linkColor === "#0000ff" ? WHITE : BLACK);
+        bitmap(link,18,readableTextY,1,fg,READABLE_FONT);
+    }
+    if (module.icon === "text") bitmap(link,5,readableTextY,1,linkColor,READABLE_FONT);
     if (module.power === "text") {
-        if (state.usb) bitmap("PWR",44,top+5,1,fg);
-        if (state.charge) bitmap("CHG",62,top+5,1,fg);
+        if (state.usb) bitmap("PWR",44,shortTextY,1,fg);
+        if (state.charge) bitmap("CHG",62,shortTextY,1,fg);
     }
     if (module.power === "icons") {
-        if (state.usb) drawIcon("PLUG",45,top+3,fg);
-        if (state.charge) drawIcon("CHARGE",64,top+3,fg);
+        if (state.usb) drawStatusPixels(USB_POWER_ICON,45,readableTextY,fg);
+        if (state.charge) drawStatusPixels(CHARGING_ICON,64,iconY,YELLOW);
     }
     if (module.battery === "gauge" || module.battery === "both") {
-        const x = module.battery === "both" ? 79 : 98;
-        strokeBox(x,top+4,19,8,batteryColor);
-        paint(x+19,top+6,2,4,batteryColor);
-        paint(x+2,top+6,Math.round(state.battery*0.15),4,state.battery < 20 && module.batteryColor === "auto" ? RED : batteryColor);
+        const x = module.battery === "both" ? 79 : 106;
+        const bars = Math.ceil(state.battery/25);
+        const outline = levelColor && bars === 0 ? RED : batteryColor;
+        const low = module.batteryColor === "auto" && state.battery < 20;
+        const fill = levelColor ? BATTERY_LEVEL_COLORS[bars] : low ? RED : batteryColor;
+        drawBatteryGauge(x,iconY,bars,outline,fill);
     }
     if (module.battery === "percent" || module.battery === "both") {
         const number = state.battery + "%";
-        bitmap(number,124-textWidth(number,1,READABLE_FONT),top+4,1,batteryColor,READABLE_FONT);
+        bitmap(number,124-textWidth(number,1,READABLE_FONT),readableTextY,1,batteryColor,READABLE_FONT);
     }
-    paint(4,y+h-1,120,1,fg);
-}
-
-const STATUS_ICONS = {BLE:[4,6,21,14,21,6,4],USB:[4,14,4,21,31,4,14],OFF:[0,17,10,4,10,17,0],
-    PLUG:[10,10,31,17,14,4,4],CHARGE:[2,4,8,30,4,8,16]};
-
-function drawIcon(icon,x,y,color) {
-    STATUS_ICONS[icon].forEach((bits,row) => {
-        for (let col=0; col<5; col++) if (bits & (16 >> col)) paint(x+col,y+row,1,1,color);
-    });
+    if (h > STATUS_ICON_HEIGHT) paint(4,y+h-1,120,1,fg);
 }
 
 function modifiers() {
