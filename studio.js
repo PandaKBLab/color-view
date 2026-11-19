@@ -3,7 +3,7 @@
 const SIZE = 128;
 const STATUS_ICON_HEIGHT = 12;
 const COLORS = ["#000000", "#ffffff", "#ff0000", "#00ff00", "#0000ff", "#00ffff", "#ff00ff", "#ffff00"];
-const [BLACK, WHITE, RED, GREEN, , CYAN, , YELLOW] = COLORS;
+const [BLACK, WHITE, RED, GREEN, BLUE, CYAN, , YELLOW] = COLORS;
 const COLOR_LABELS = Object.fromEntries(COLORS.map((color,index) => [color,["黑","白","红","绿","蓝","青","品红","黄"][index]]));
 const THEME_COLORS = {auto:"跟随屏幕",...COLOR_LABELS};
 const SIDES = ["left","right"];
@@ -280,11 +280,15 @@ const DISCONNECTED_MARK = [
     "##..##", ".####.", "..##..",
     ".####.", "##..##",
 ];
+const BLUETOOTH_PROFILE_FONT = {width:5,height:7,glyphs:{
+    1:[12,28,12,12,12,12,30], 2:[14,27,3,6,12,24,31], 3:[30,3,3,14,3,3,30],
+    4:[11,27,27,27,31,3,3], 5:[31,24,24,30,3,3,30],
+}};
 const USB_CONNECTED_ICON = [
-    ".....+.....", "....+++....", "...+++++...",
-    ".....#.....", ".++..#..++.", ".++..#..++.",
-    "..#..#..#..", "...#.#.#...", "....###....",
-    ".....#.....", "....###....", "....###....",
+    "..........###.......", ".........#####......", ".......#######......",
+    "......###.###....#..", ".###.###.........##.", "####################",
+    "####################", ".###....##.......##.", ".........##.####.#..",
+    "..........######....", "............####....", "............####....",
 ];
 const USB_POWER_ICON = [
     ".#.#.", ".#.#.", "#####",
@@ -298,14 +302,12 @@ const CHARGING_ICON = [
     "...###....", "..##......", "..#.......",
 ];
 const BATTERY_LEVEL_COLORS = [RED, RED, YELLOW, GREEN, GREEN];
-const STATUS_COLUMNS = {connectionIcon:5,connectionText:18,power:45,charging:63,battery:79,rightEdge:124};
+const STATUS_COLUMNS = {connectionIcon:5,connectionText:27,power:49,charging:63,battery:79,rightEdge:124};
 
-function drawStatusPixels(rows,x,y,primary,accent) {
-    const inks = {"#":primary,"+":accent};
+function drawStatusPixels(rows,x,y,color) {
     for (const [row, pixels] of rows.entries()) {
         for (let column = 0; column < pixels.length; column++) {
-            const ink = inks[pixels[column]];
-            if (ink) paint(x+column,y+row,1,1,ink);
+            if (pixels[column] === "#") paint(x+column,y+row,1,1,color);
         }
     }
 }
@@ -332,9 +334,10 @@ function drawStatus(module,y,h,fg) {
 
     if (module.icon === "icons") {
         if (state.endpoint === "USB") {
-            drawStatusPixels(USB_CONNECTED_ICON,columns.connectionIcon,iconY,fg,linkColor);
+            drawStatusPixels(USB_CONNECTED_ICON,columns.connectionIcon,iconY,GREEN);
         } else if (state.endpoint === "BLE") {
-            drawStatusPixels(BLUETOOTH_ICON,columns.connectionIcon,iconY,linkColor);
+            drawStatusPixels(BLUETOOTH_ICON,columns.connectionIcon,iconY,BLUE);
+            bitmap(state.profile,columns.connectionIcon+11,iconY+5,1,BLUE,BLUETOOTH_PROFILE_FONT);
         } else {
             drawStatusPixels(DISCONNECTED_MARK,columns.connectionIcon+2,iconY+3,RED);
         }
@@ -369,7 +372,7 @@ function drawStatus(module,y,h,fg) {
         const x = columns.rightEdge - textWidth(number,1,READABLE_FONT);
         bitmap(number,x,readableTextY,1,batteryColor,READABLE_FONT);
     }
-    if (h > STATUS_ICON_HEIGHT) paint(4,y+h-1,120,1,fg);
+    if (state.endpoint === "OFF" && h > STATUS_ICON_HEIGHT) paint(4,y+h-1,120,1,fg);
 }
 
 function modifiers() {
@@ -766,6 +769,14 @@ function screenHotspots(hand) {
     }) : [];
 }
 
+function moduleOptionEntries(module) {
+    const entries = Object.entries(OPTIONS[module.type] || {});
+    if (module.type === "status" && (module.icon === "icons" || module.icon === "none")) {
+        return entries.filter(([key]) => key !== "linkColor");
+    }
+    return entries;
+}
+
 function moduleOptions(module,maxHeight,onChange,scope="") {
     if (!module) return [];
     const heightRow = document.createElement("label");
@@ -787,7 +798,7 @@ function moduleOptions(module,maxHeight,onChange,scope="") {
     };
     heightRow.append(height);
     const options = [heightRow];
-    const fields = {...(OPTIONS[module.type] || {})};
+    const fields = Object.fromEntries(moduleOptionEntries(module));
     if (module.type !== "spacer") {
         fields.foreground = ["文字颜色",THEME_COLORS];
         fields.background = ["背景颜色",THEME_COLORS];
@@ -995,9 +1006,17 @@ function initBuilder() {
     height.min = TYPES[builderDraft.type].min;
     height.value = builderDraft.height;
     by("builder-error").textContent = "";
-    const options = Object.entries(OPTIONS[builderDraft.type] || {}).map(([key,[label,choices]]) =>
-        optionSelect(label,"builder-"+key,choices,builderDraft[key],value => { builderDraft[key] = value; }));
+    renderBuilderOptions();
+}
+
+function renderBuilderOptions(focus) {
+    const options = moduleOptionEntries(builderDraft).map(([key,[label,choices]]) =>
+        optionSelect(label,"builder-"+key,choices,builderDraft[key],(value,id) => {
+            builderDraft[key] = value;
+            if (key === "icon") renderBuilderOptions(id);
+        }));
     by("builder-options").replaceChildren(...options);
+    if (focus) by(focus)?.focus();
 }
 
 builderType.onchange = initBuilder;
