@@ -54,8 +54,8 @@ const SILAKKA = (() => {
         for (let col=0; col<6; col++) add(1,900+col*100,stagger[5-col]+row*100);
     }
     const thumbs = [412,427,461];
-    for (let col=0; col<3; col++) add(0,300+col*100,thumbs[col]);
-    for (let col=0; col<3; col++) add(1,900+col*100,thumbs[2-col]);
+    for (let col=0; col<3; col++) add(0,400+col*100,thumbs[col]);
+    for (let col=0; col<3; col++) add(1,800+col*100,thumbs[2-col]);
     add(0,648,260,40,40); add(0,648,350,40,40); add(0,603,305,40,40);
     add(0,693,305,40,40); add(0,648,305,40,40);
     add(1,817,297,68,68);

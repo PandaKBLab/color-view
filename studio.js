@@ -42,7 +42,7 @@ const TYPES = {
     status:{category:"status", name:"连接与电量", height:16, min:STATUS_ICON_HEIGHT},
     keys:{category:"keys", name:"键位与外设", height:64, min:32},
     sofleModKeys:{category:"keys", name:"Sofle Mod 按键", height:64, min:32},
-    silakkaKeys:{category:"keys", name:"Silakka 按键", height:64, min:32},
+    silakkaKeys:{category:"keys", name:"Silakka Mod 按键", height:64, min:32},
     sprite:{category:"animation", name:"方块鸡", height:48, min:16},
     asset:{category:"animation", name:"本地图片／GIF", height:48, min:16},
     layer:{category:"interaction", name:"当前层", height:24, min:16},
@@ -78,7 +78,8 @@ function createModule(type, values = {}) {
     if (!Number.isInteger(height) || height < template.min || height > SIZE) {
         throw Error(t("可设高度为 {min}–{max} px",{min:template.min,max:SIZE}));
     }
-    const name = type === "spacer" ? template.name : String(values.name ?? template.name).trim().slice(0,24);
+    let name = type === "spacer" ? template.name : String(values.name ?? template.name).trim().slice(0,24);
+    if (type === "silakkaKeys" && name === "Silakka 按键") name = template.name;
     const module = {type, name:name || template.name, height};
     if (type !== "spacer") {
         module.foreground = COLORS.includes(values.foreground) ? values.foreground : "auto";
@@ -561,17 +562,18 @@ function drawKnob(x,y,color) {
     }
 }
 
-function drawFooterValue(hand,values,x,y,w,h,fg) {
-    const tokens = [{label:hand},...values];
-    const gap = 3;
-    const width = tokens.reduce((total,{label})=>total+textWidth(label,1),0)+gap*(tokens.length-1);
+function drawFooterValue(hand,values,x,y,w,h,fg,boxed=false) {
+    const tokens = [{label:hand},...values.map(value=>({...value, inset:boxed ? 2 : 0}))];
+    const gap = boxed ? 1 : 3;
+    const width = tokens.reduce((total,{label,inset=0})=>total+textWidth(label,1)+2*inset,0)+gap*(tokens.length-1);
+    const top = y+Math.floor((h-5)/2);
     let left = x+Math.floor((w-width)/2);
-    for (const {label,active} of tokens) {
+    for (const {label,active,inset=0} of tokens) {
         const size = textWidth(label,1);
-        const top = y+Math.floor((h-5)/2);
-        if (active) paint(left-1,top-1,size+2,7,YELLOW);
-        bitmap(label,left,top,1,active ? BLACK : fg);
-        left += size+gap;
+        if (active) paint(left+inset-1,top-1,size+2,7,YELLOW);
+        if (inset) strokeBox(left,top-2,size+2*inset,9,active ? YELLOW : fg);
+        bitmap(label,left+inset,top,1,active ? BLACK : fg);
+        left += size+2*inset+gap;
     }
 }
 
@@ -592,9 +594,13 @@ function drawKeys(module,y,h,fg,now,screen) {
     const footer = showFive || showEncoder ? 10 : 0;
     const body = h-footer-2;
     if (all) {
-        drawKeyGrid(view,0,sofle ? 1 : 2,y+1,sofle ? 57 : 50,body,fg,now);
-        drawKeyGrid(view,1,sofle ? 70 : 76,y+1,sofle ? 57 : 50,body,fg,now);
-    } else drawKeyGrid(view,Number(!left),left ? 2 : 32,y+1,94,body,fg,now);
+        const gridWidth = sofle ? 57 : silakka ? 58 : 50;
+        drawKeyGrid(view,0,sofle ? 1 : 2,y+1,gridWidth,body,fg,now);
+        drawKeyGrid(view,1,sofle ? 70 : silakka ? 68 : 76,y+1,gridWidth,body,fg,now);
+    } else {
+        const gridWidth = silakka ? 102 : 94;
+        drawKeyGrid(view,Number(!left),left ? 2 : 126-gridWidth,y+1,gridWidth,body,fg,now);
+    }
 
     const middle = all ? 64 : left ? 112 : 16;
     const iconY = y + Math.max(0,Math.min(Math.floor(body*0.24),body-20));
@@ -622,9 +628,9 @@ function drawKeys(module,y,h,fg,now,screen) {
     }
     if (footer) {
         const footerY = y+h-footer;
-        paint(2,footerY,124,1,fg);
-        if (showFive) drawFooterValue("L",five,0,footerY+1,all ? 64 : 128,footer-1,fg);
-        if (showEncoder) drawFooterValue("R",encoder,all ? 64 : 0,footerY+1,all ? 64 : 128,footer-1,fg);
+        if (!silakka) paint(2,footerY,124,1,fg);
+        if (showFive) drawFooterValue("L",five,0,footerY+1,all ? 64 : 128,footer-1,fg,silakka);
+        if (showEncoder) drawFooterValue("R",encoder,all ? 64 : 0,footerY+1,all ? 64 : 128,footer-1,fg,silakka);
     }
 }
 
@@ -1264,6 +1270,7 @@ function exportProject() {
                 entry.keymapSource = config.keymap && matchesSofleMod() ? "imported" : "sofle-mod-example";
             } else if (module.type === "silakkaKeys") {
                 entry.keyboardLayout = "silakka";
+                entry.peripheralValueStyle = "boxed";
                 entry.keymapSource = config.keymap && matchesSilakka() ? "imported" : "silakka-example";
             }
             if (assetId) entry.assetId = assetId;
