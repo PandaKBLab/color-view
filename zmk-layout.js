@@ -139,12 +139,18 @@ const ZmkLayout = (() => {
         const physical = value.physical;
         const keys = physical?.keys;
         const accepted = Array.isArray(keys) && keys.length === size && keys.every(key => Array.isArray(key) && key.length === 7 && key[0] > 0 && key[1] > 0 && key.every(n => Number.isInteger(n) && Math.abs(n) <= 100000));
-        return {file:string(value.file,120),layout:["grid","sofle","physical"].includes(value.layout) ? value.layout : "auto",layers,
+        return {file:string(value.file,120),layout:["grid","sofle","silakka","physical"].includes(value.layout) ? value.layout : "auto",layers,
             physical:accepted ? {name:string(physical.name,48),keys} : null};
     }
 
-    function geometry(keymap) {
-        if (!keymap) return {kind:"sofle-demo",keys:SOFLE.layout};
+    function isSilakka(keymap) {
+        return keymap?.layers[0]?.bindings.length === SILAKKA.layout.length &&
+            (keymap.layout === "silakka" || /silakka/i.test(keymap.file) ||
+                keymap.layout === "physical" && /silakka/i.test(keymap.physical?.name ?? ""));
+    }
+
+    function geometry(keymap,example=SOFLE) {
+        if (!keymap) return {kind:example === SILAKKA ? "silakka-demo" : "sofle-demo",keys:example.layout};
         const count = keymap.layers[0].bindings.length;
         if (keymap.layout === "physical" && keymap.physical) {
             const keys = keymap.physical.keys;
@@ -164,6 +170,7 @@ const ZmkLayout = (() => {
         if ([58,64].includes(count) && (keymap.layout === "sofle" || keymap.layout === "auto" && /sofle/i.test(keymap.file))) {
             return {kind:"sofle-demo",keys:SOFLE.layout.slice(0,count)};
         }
+        if (keymap.layout !== "grid" && isSilakka(keymap)) return {kind:"silakka-demo",keys:SILAKKA.layout};
         const left = Math.ceil(count/2);
         const cols = Math.ceil(Math.sqrt(left * 1.45));
         const keys = Array.from({length:count},(_,id) => {
@@ -173,13 +180,13 @@ const ZmkLayout = (() => {
         return {kind:"position-grid",keys};
     }
 
-    function binding(keymap, layer, id) {
-        if (!keymap) return {label:(layer === 1 ? SOFLE.functionNames[id] : null) ?? SOFLE.names[id] ?? "-"};
+    function binding(keymap, layer, id, example=SOFLE) {
+        if (!keymap) return {label:(layer === 1 ? example.functionNames[id] : null) ?? example.names[id] ?? "-"};
         const layers = keymap.layers;
         const current = layers[layer]?.bindings[id];
         const base = layers[0].bindings[id];
         return current?.behavior === "trans" || !current ? base : current;
     }
 
-    return {parseKeymap,parsePhysical,validate,geometry,binding};
+    return {parseKeymap,parsePhysical,validate,geometry,binding,isSilakka};
 })();

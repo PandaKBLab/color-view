@@ -6,11 +6,11 @@
   <title>Color View Studio · 显示配置</title>
   <meta name="description" content="组合显示模块并实时预览 Color View 的 128 × 128 八色画面。">
   <link rel="stylesheet" href="style.css?v=6">
-  <script defer src="translations.js?v=8"></script>
-  <script defer src="demo-data.js?v=7"></script>
-  <script defer src="zmk-layout.js?v=7"></script>
+  <script defer src="translations.js?v=9"></script>
+  <script defer src="demo-data.js?v=8"></script>
+  <script defer src="zmk-layout.js?v=8"></script>
   <script defer src="zmk-project.js?v=2"></script>
-  <script defer src="studio.js?v=10"></script>
+  <script defer src="studio.js?v=11"></script>
 </head>
 <body>
   <header class="top">
@@ -95,7 +95,7 @@
       <div class="keymap-tools">
         <button type="button" id="load-keymap" class="button">导入 .keymap</button><input id="keymap-file" type="file" accept=".keymap,.dts,.txt" hidden>
         <button type="button" id="load-physical" class="button" disabled>导入物理配列</button><input id="physical-file" type="file" accept=".dtsi,.dts,.overlay,.txt" hidden>
-        <label>配列 <select id="keymap-layout" disabled><option value="auto">自动匹配</option><option value="grid">顺序网格</option><option value="sofle">Sofle 示例</option><option value="physical">物理配列</option></select></label>
+        <label>配列 <select id="keymap-layout" disabled><option value="auto">自动匹配</option><option value="grid">顺序网格</option><option value="sofle">Sofle 示例</option><option value="silakka">Silakka 示例</option><option value="physical">物理配列</option></select></label>
         <button type="button" id="reset-keymap" class="button" hidden>恢复示例</button>
       </div>
       <p class="module-hint">导入 .keymap 读取键值和层。可追加含 key_physical_attrs 的 .dtsi 获取实际位置。文件在浏览器中处理。</p>

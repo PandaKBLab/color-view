@@ -42,6 +42,7 @@ const TYPES = {
     status:{category:"status", name:"连接与电量", height:16, min:STATUS_ICON_HEIGHT},
     keys:{category:"keys", name:"键位与外设", height:64, min:32},
     sofleModKeys:{category:"keys", name:"Sofle Mod 按键", height:64, min:32},
+    silakkaKeys:{category:"keys", name:"Silakka 按键", height:64, min:32},
     sprite:{category:"animation", name:"方块鸡", height:48, min:16},
     asset:{category:"animation", name:"本地图片／GIF", height:48, min:16},
     layer:{category:"interaction", name:"当前层", height:24, min:16},
@@ -60,6 +61,7 @@ const OPTIONS = {
         power:["供电与充电",{icons:"插头 / 闪电",text:"PWR / CHG",none:"隐藏"}]},
     keys:keyOptions,
     sofleModKeys:{...keyOptions,keys:["键位范围",{all:"两半键盘",local:"本侧"}]},
+    silakkaKeys:{...keyOptions,keys:["键位范围",{all:"两半键盘",local:"本侧"}]},
     sprite:{animation:["播放方式",{loop:"循环",key:"按键触发",still:"静态"}]},
     asset:{animation:["播放方式",{loop:"循环",key:"按键触发",still:"静态"}]},
 };
@@ -435,14 +437,15 @@ function drawWave(y,h,fg,now) {
     }
 }
 
-const binding = (position,layer=state.layer,keymap=config.keymap) => ZmkLayout.binding(keymap,layer,position)?.label || "-";
+const binding = (position,layer=state.layer,keymap=config.keymap,example=geometry?.kind === "silakka-demo" ? SILAKKA : SOFLE) =>
+    ZmkLayout.binding(keymap,layer,position,example)?.label || "-";
 const layerNames = () => config.keymap?.layers.map(layer => layer.name) ?? LAYERS;
 const pixelText = (text,fallback) => /^[\x20-\x7e↑↓←→]+$/.test(text) ? text.slice(0,24) : fallback;
 
 function screenKey(position,view) {
-    const long = binding(position,view.layer,view.keymap);
+    const long = binding(position,view.layer,view.keymap,view.example);
     if (view.sofle && (position === 51 || position === 54) && /^L\d+$/.test(long)) return "FN";
-    const tiny = view.sofle
+    const tiny = view.sofle || view.example === SILAKKA
         ? {Esc:"ES",Tab:"TB",Caps:"CP",Shift:"SH",Ctrl:"CT",GUI:"GU",Alt:"AL",Fn:"FN",Space:"SP",Enter:"EN",Bksp:"BS",Mute:"MU"}
         : {Space:"SP",Enter:"ENT",Shift:"SFT",Ctrl:"CTL",Bksp:"BK",Mute:"MT",Caps:"CAP"};
     const label = tiny[long] || long;
@@ -476,18 +479,25 @@ function displayGeometry(groups) {
     return {displayKeys,displayBounds:displayKeys.map(layoutBounds)};
 }
 
-const sofleModGeometry = {
-    ...displayGeometry([0,1].map(hand=>SOFLE_MOD_FACE.cells.filter(key=>key[1]===hand))),
-    fiveWay:SOFLE_MOD_FACE.fiveWay,encoderPress:SOFLE_MOD_FACE.encoderPress,
-};
+function faceGeometry({cells,fiveWay,encoderPress}) {
+    return {...displayGeometry([0,1].map(hand=>cells.filter(key=>key[1]===hand))),fiveWay,encoderPress};
+}
+
+const sofleModGeometry = faceGeometry(SOFLE_MOD_FACE);
+const silakkaGeometry = faceGeometry(SILAKKA);
+const useSilakkaExample = () => SIDES.some(hand => {
+    const screen = config.screens[hand];
+    return screen.enabled && screen.modules.some(module=>module.type === "silakkaKeys");
+});
 
 function prepareGeometry() {
-    geometry = ZmkLayout.geometry(config.keymap);
+    geometry = ZmkLayout.geometry(config.keymap,useSilakkaExample() ? SILAKKA : SOFLE);
     geometry.groups = [0,1].map(hand => geometry.keys.filter(key => key[1] === hand));
     geometry.bounds = geometry.groups.map(layoutBounds);
     const sampleControls = geometry.keys.length === 64 && (geometry.kind === "sofle-demo" || /sofle/i.test(config.keymap?.file || ""));
-    geometry.fiveWay = sampleControls ? [58,59,60,61,62] : [];
-    geometry.encoderPress = sampleControls ? 63 : null;
+    const controls = matchesSilakka() ? SILAKKA : sampleControls ? SOFLE_MOD_FACE : null;
+    geometry.fiveWay = controls?.fiveWay ?? [];
+    geometry.encoderPress = controls?.encoderPress ?? null;
     const peripheralPositions = new Set([...geometry.fiveWay,geometry.encoderPress]);
     Object.assign(geometry,displayGeometry(geometry.groups.map(keys=>keys.filter(key=>!peripheralPositions.has(key[0])))));
     geometry.layerNames = layerNames();
@@ -497,6 +507,8 @@ const keyIsActive = (id,now) => state.held.has(id) || (state.flashed.get(id) ?? 
 const isKeyModule = module => TYPES[module.type]?.category === "keys";
 const matchesSofleMod = () => !config.keymap || geometry.keys.length === 64 &&
     (geometry.kind === "sofle-demo" || /sofle[ _-]*mod/i.test(config.keymap.file));
+const matchesSilakka = () => geometry.kind === "silakka-demo" ||
+    geometry.kind === "physical-dtsi" && ZmkLayout.isSilakka(config.keymap);
 
 function drawKeyGrid(view,group,x,y,w,h,fg,now) {
     const dims = view.board.displayBounds[group];
@@ -533,7 +545,7 @@ function encoderValues(layer,keymap=config.keymap) {
 }
 
 function peripheralLabel(label) {
-    const short = {Enter:"EN",Mute:"MU","Vol-":"V-","Vol+":"V+",Space:"SP",Bksp:"BK"};
+    const short = {Enter:"EN",Mute:"MU","Vol-":"V-","Vol+":"V+",Space:"SP",Bksp:"BK",PgUp:"PU",PgDn:"PD",PG_UP:"PU",PG_DN:"PD"};
     return short[label] || pixelText(label || "--","--").slice(0,2);
 }
 
@@ -565,12 +577,14 @@ function drawFooterValue(hand,values,x,y,w,h,fg) {
 
 function drawKeys(module,y,h,fg,now,screen) {
     const all = module.keys === "all", left = screen === "left";
-    const sofle = module.type === "sofleModKeys";
-    const live = !sofle || matchesSofleMod();
-    const board = sofle ? sofleModGeometry : geometry;
+    const sofle = module.type === "sofleModKeys", silakka = module.type === "silakkaKeys";
+    const live = silakka ? matchesSilakka()
+        : sofle ? matchesSofleMod() && geometry.kind !== "silakka-demo" : true;
+    const board = silakka ? silakkaGeometry : sofle ? sofleModGeometry : geometry;
     const layer = module.keyLayer === "base" || !live ? 0 : state.layer;
     const keymap = live ? config.keymap : null;
-    const view = {board,layer,keymap,live,sofle};
+    const example = silakka || !sofle && geometry.kind === "silakka-demo" ? SILAKKA : SOFLE;
+    const view = {board,layer,keymap,live,sofle,example};
     const rotations = encoderValues(layer,keymap);
     const showFive = (all || left) && board.fiveWay.length > 0;
     const showEncoder = (all || !left) && (board.encoderPress !== null || Boolean(rotations));
@@ -584,16 +598,16 @@ function drawKeys(module,y,h,fg,now,screen) {
 
     const middle = all ? 64 : left ? 112 : 16;
     const iconY = y + Math.max(0,Math.min(Math.floor(body*0.24),body-20));
-    const five = showFive ? board.fiveWay.map(id=>({label:peripheralLabel(binding(id,layer,keymap)),active:live && keyIsActive(id,now)})) : [];
+    const five = showFive ? board.fiveWay.map(id=>({label:peripheralLabel(binding(id,layer,keymap,example)),active:live && keyIsActive(id,now)})) : [];
     const encoder = showEncoder ? [
         {label:peripheralLabel(rotations?.counterclockwise),active:device === "VOL-"},
-        {label:peripheralLabel(board.encoderPress !== null ? binding(board.encoderPress,layer,keymap) : ""),
+        {label:peripheralLabel(board.encoderPress !== null ? binding(board.encoderPress,layer,keymap,example) : ""),
             active:device === "MUTE" || live && keyIsActive(board.encoderPress,now)},
         {label:peripheralLabel(rotations?.clockwise),active:device === "VOL+"},
     ] : [];
     if (showFive) drawDpad(middle-(all ? 11 : 4),iconY,five.some(item=>item.active) ? YELLOW : fg);
     if (showEncoder) drawKnob(middle+(all ? 2 : -4),iconY,encoder.some(item=>item.active) ? YELLOW : fg);
-    if (sofle && all && iconY >= y+7) {
+    if ((sofle || silakka) && all && iconY >= y+7) {
         bitmap("L",middle-8,iconY-7,1,fg);
         bitmap("R",middle+5,iconY-7,1,fg);
     }
@@ -830,6 +844,13 @@ function moduleOptions(module,maxHeight,onChange,scope="") {
 }
 
 function refreshControls(focus) {
+    if (!config.keymap && (geometry.kind === "silakka-demo") !== useSilakkaExample()) {
+        state.held.clear();
+        state.flashed.clear();
+        state.layer = 0;
+        fnReturn = null;
+        createKeyboard();
+    }
     const s = settings();
     by("track-toggle").checked = config.trackball;
     by("trackball").hidden = !config.trackball;
@@ -1105,7 +1126,8 @@ function createKeyboard() {
 function renderKeyLabels() {
     for (const [id,button] of keyNodes) {
         const label = binding(id);
-        button.textContent = !config.keymap && id === 62 ? "◆" : !config.keymap && id === 63 ? "●" : label;
+        button.textContent = !config.keymap && id === geometry.fiveWay.at(-1) ? "◆"
+            : !config.keymap && id === geometry.encoderPress ? "●" : label;
         button.title = t("位置 {id} · {label}",{id,label});
         button.setAttribute("aria-label",button.title);
     }
@@ -1175,13 +1197,14 @@ const codeToPosition = new Map();
 function syncKeymapControls() {
     const keymap = config.keymap;
     const layout = by("keymap-layout");
-    const modes = {"physical-dtsi":"物理配列","sofle-demo":"Sofle 示例配列","position-grid":"顺序网格"};
+    const modes = {"physical-dtsi":"物理配列","sofle-demo":"Sofle 示例配列","silakka-demo":"Silakka 示例配列","position-grid":"顺序网格"};
     by("load-physical").disabled = !keymap;
     by("reset-keymap").hidden = !keymap;
     layout.disabled = !keymap;
     layout.value = keymap?.layout ?? "auto";
     layout.querySelector('option[value="physical"]').disabled = !keymap?.physical;
     layout.querySelector('option[value="sofle"]').disabled = ![58,64].includes(geometry.keys.length);
+    layout.querySelector('option[value="silakka"]').disabled = geometry.keys.length !== SILAKKA.layout.length;
     const shortLayers = keymap?.layers.filter(layer => layer.sourceBindingCount < geometry.keys.length).length || 0;
     const parts = [keymap?.file,t(modes[geometry.kind]),t("{count} 键",{count:geometry.keys.length})];
     if (keymap) parts.push(t("{count} 层",{count:keymap.layers.length}));
@@ -1214,6 +1237,15 @@ function moduleColors(module,screenBackground) {
     return {background,foreground};
 }
 
+function exportFace(face,example) {
+    return {
+        units:"centi-keyunit",
+        cells:face.cells.map(([index,hand,x,y,width,height])=>({index,side:SIDES[hand],x,y,width,height})),
+        peripherals:{fiveWayPositions:face.fiveWay,encoderPressPosition:face.encoderPress},
+        exampleLabels:example.names,exampleEncoder:encoderValues(0,null),
+    };
+}
+
 function exportProject() {
     const exportedAssets = {};
     const screens = Object.fromEntries(SIDES.map(hand => {
@@ -1230,6 +1262,9 @@ function exportProject() {
             if (module.type === "sofleModKeys") {
                 entry.keyboardLayout = "sofle-mod";
                 entry.keymapSource = config.keymap && matchesSofleMod() ? "imported" : "sofle-mod-example";
+            } else if (module.type === "silakkaKeys") {
+                entry.keyboardLayout = "silakka";
+                entry.keymapSource = config.keymap && matchesSilakka() ? "imported" : "silakka-example";
             }
             if (assetId) entry.assetId = assetId;
             y += module.height;
@@ -1237,8 +1272,10 @@ function exportProject() {
         });
         return [hand,{...screen,background,modules}];
     }));
-    const hasSofleMod = [...Object.values(screens).flatMap(screen=>screen.modules),...config.library]
-        .some(module=>module.type === "sofleModKeys");
+    const types = new Set([...Object.values(screens).flatMap(screen=>screen.modules),...config.library].map(module=>module.type));
+    const displayLayouts = {};
+    if (types.has("sofleModKeys")) displayLayouts["sofle-mod"] = exportFace(SOFLE_MOD_FACE,SOFLE);
+    if (types.has("silakkaKeys")) displayLayouts.silakka = exportFace(SILAKKA,SILAKKA);
     return {
         format:ZmkProject.format,version:1,
         display:{width:SIZE,height:SIZE,colorMode:"RGB111",palette:COLORS,origin:"top-left before rotation",
@@ -1247,12 +1284,7 @@ function exportProject() {
         screens,assets:exportedAssets,
         keyboard:{geometrySource:geometry.kind,geometryUnits:"centi-keyunit",file:config.keymap?.file ?? null,
             peripherals:{fiveWayPositions:geometry.fiveWay,encoderPressPosition:geometry.encoderPress},
-            displayLayouts:hasSofleMod ? {"sofle-mod": {
-                units:"centi-keyunit",
-                cells:SOFLE_MOD_FACE.cells.map(([index,hand,x,y,width,height])=>({index,side:SIDES[hand],x,y,width,height})),
-                peripherals:{fiveWayPositions:SOFLE_MOD_FACE.fiveWay,encoderPressPosition:SOFLE_MOD_FACE.encoderPress},
-                exampleLabels:SOFLE.names,exampleEncoder:{clockwise:"Vol+",counterclockwise:"Vol-"},
-            }} : undefined,
+            displayLayouts:Object.keys(displayLayouts).length ? displayLayouts : undefined,
             positions:geometry.keys.map(([index,hand,x,y,width,height,rotation,originX,originY]) => ({
                 index,side:SIDES[hand],x,y,width,height,rotation,originX,originY,
             })),
