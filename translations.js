@@ -146,6 +146,12 @@ Color View 项目文档|Color View documentation|Color View 專案文件|Color V
 最近键值|Last key|最近按鍵|最後のキー|Letzte Taste|Dernière touche|Última tecla|Última tecla|최근 키|Ultimo tasto|Последняя клавиша|Ostatni klawisz
 WPM 波形|WPM graph|WPM 波形|WPM グラフ|WPM-Diagramm|Graphique WPM|Gráfico WPM|Gráfico de WPM|WPM 그래프|Grafico WPM|График WPM|Wykres WPM
 空行|Spacer|空白列|余白|Abstand|Espace|Espaciador|Espaçador|여백|Spazio|Отступ|Odstęp
+模拟侧|Simulated half|模擬側|シミュレーション対象|Simulierte Hälfte|Moitié simulée|Mitad simulada|Metade simulada|시뮬레이션 대상|Metà simulata|Сторона симуляции|Symulowana połowa
+预览场景|Preview scenario|預覽情境|プレビュー状態|Vorschauzustand|Scénario d’aperçu|Escenario de vista previa|Cenário de prévia|미리보기 시나리오|Scenario di anteprima|Сценарий предпросмотра|Scenariusz podglądu
+低电量|Low battery|低電量|バッテリー低下|Niedriger Akkustand|Batterie faible|Batería baja|Bateria fraca|배터리 부족|Batteria scarica|Низкий заряд|Niski poziom baterii
+蓝牙＋充电|Bluetooth + charging|藍牙＋充電|Bluetooth＋充電|Bluetooth + Laden|Bluetooth + charge|Bluetooth + carga|Bluetooth + carregamento|블루투스 + 충전|Bluetooth + ricarica|Bluetooth + зарядка|Bluetooth + ładowanie
+连接来源|Connection source|連線來源|接続情報の取得元|Verbindungsquelle|Source de connexion|Origen de conexión|Origem da conexão|연결 정보 출처|Origine della connessione|Источник данных о подключении|Źródło danych połączenia
+电量来源|Battery source|電量來源|バッテリー情報の取得元|Akkuquelle|Source de batterie|Origen de batería|Origem da bateria|배터리 정보 출처|Origine dei dati batteria|Источник данных о заряде|Źródło danych baterii
 连接图标|Connection icon|連線圖示|接続アイコン|Verbindungssymbol|Icône de connexion|Icono de conexión|Ícone de conexão|연결 아이콘|Icona connessione|Значок подключения|Ikona połączenia
 像素图标与档位|Pixel icon and profile|像素圖示與設定檔|ピクセルアイコンとプロファイル|Pixelsymbol und Profil|Icône pixel et profil|Icono pixelado y perfil|Ícone em pixels e perfil|픽셀 아이콘과 프로필|Icona pixel e profilo|Пиксельный значок и профиль|Ikona pikselowa i profil
 字母徽标与档位|Letter badge and profile|字母徽章與設定檔|文字バッジとプロファイル|Buchstabensymbol und Profil|Lettre et profil|Insignia de letra y perfil|Letra e perfil|문자 배지와 프로필|Lettera e profilo|Буквенный значок и профиль|Litera i profil

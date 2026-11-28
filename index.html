@@ -6,11 +6,11 @@
   <title>Color View Studio · 显示配置</title>
   <meta name="description" content="组合显示模块并实时预览 Color View 的 128 × 128 八色画面。">
   <link rel="stylesheet" href="style.css?v=6">
-  <script defer src="translations.js?v=10"></script>
+  <script defer src="translations.js?v=11"></script>
   <script defer src="demo-data.js?v=9"></script>
   <script defer src="zmk-layout.js?v=8"></script>
-  <script defer src="zmk-project.js?v=2"></script>
-  <script defer src="studio.js?v=12"></script>
+  <script defer src="zmk-project.js?v=3"></script>
+  <script defer src="studio.js?v=13"></script>
 </head>
 <body>
   <header class="top">
@@ -62,6 +62,16 @@
       <section class="panel sim" aria-labelledby="sim-title">
         <div class="section-title"><h2 id="sim-title">状态模拟</h2><span class="badge">浏览器</span></div>
         <div class="fields">
+          <label><span>模拟侧</span><select id="status-side"><option value="left">左手</option><option value="right">右手</option></select></label>
+          <label><span>预览场景</span><select id="status-scene">
+            <option value="" disabled>自定义</option>
+            <option value="bt1">BT1</option>
+            <option value="bt2">BT2</option>
+            <option value="usb">USB</option>
+            <option value="offline">离线</option>
+            <option value="low">低电量</option>
+            <option value="charging">蓝牙＋充电</option>
+          </select></label>
           <label><span>键盘输出</span><select id="endpoint"><option value="BLE">蓝牙</option><option value="USB">USB</option><option value="OFF">离线</option></select></label>
           <label><span>蓝牙档位</span><select id="profile"><option value="1">档位 1</option><option value="2">档位 2</option><option value="3">档位 3</option><option value="4">档位 4</option><option value="5">档位 5</option></select></label>
         </div>

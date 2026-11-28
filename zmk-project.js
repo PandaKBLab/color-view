@@ -20,6 +20,8 @@ const ZmkProject = (() => {
             "Use screens.left and screens.right to select which half renders each layout. The preview side is not the ZMK central/peripheral role. For an inactive side, apply the board's existing display suspend or power policy if supported. Follow the driver's VCOM requirements while a panel stays powered.",
             "Implement the modules in array order with their supplied x, y, width and height in screen pixels. Draw before applying the screen's rotation. Apply the supplied palette, resolved colors, options and asset timing.",
             "Use each module's inputs as logical data requirements. Resolve event APIs against the repository's ZMK revision. Sync only the state required by an enabled peripheral display, using the repository's existing split transport where possible.",
+            "For status modules, connectionSource selects the half that supplies the endpoint and Bluetooth profile. batterySource selects the half that supplies battery level, USB power and charging. Resolve local (the default when a field is omitted) to the half rendering this module. Use the connection and split state available in the target firmware.",
+            "For single-half keymaps, apply display.keyGrid.singleHalfWidthScale to the horizontal scale, capped by the available key grid width. Preserve the uniform scale for dual-half keymaps.",
             "Map keyboard.positions by zero-based ZMK position index. Verify geometry and position mapping against the build target. Use the firmware's layer and behavior resolution at runtime.",
             "Build both split targets and verify the display orientation, state updates, and sleep/wake behavior on the real keyboard.",
         ],

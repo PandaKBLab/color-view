@@ -2,6 +2,7 @@
 
 const SIZE = 128;
 const STATUS_ICON_HEIGHT = 12;
+const SINGLE_HALF_KEY_WIDTH_SCALE = 1.16;
 const COLORS = ["#000000", "#ffffff", "#ff0000", "#00ff00", "#0000ff", "#00ffff", "#ff00ff", "#ffff00"];
 const [BLACK, WHITE, RED, GREEN, BLUE, CYAN, , YELLOW] = COLORS;
 const COLOR_LABELS = Object.fromEntries(COLORS.map((color,index) => [color,["黑","白","红","绿","蓝","青","品红","黄"][index]]));
@@ -53,8 +54,11 @@ const TYPES = {
     spacer:{name:"空行", height:4, min:1},
 };
 const keyOptions = {keys:["键位范围",{local:"本侧",all:"两半键盘"}],keyLayer:["键位层",{active:"跟随当前层",base:"固定基础层"}]};
+const statusSources = {local:"本侧",left:"左手",right:"右手"};
 const OPTIONS = {
-    status:{icon:["连接图标",{icons:"像素图标与档位",badge:"字母徽标与档位",text:"仅文字",none:"隐藏"}],
+    status:{connectionSource:["连接来源",statusSources],
+        batterySource:["电量来源",statusSources],
+        icon:["连接图标",{icons:"像素图标与档位",badge:"字母徽标与档位",text:"仅文字",none:"隐藏"}],
         linkColor:["连接颜色",{[CYAN]:"青",...COLOR_LABELS,auto:"跟随模块文字"}],
         battery:["电量图标",{both:"电池格＋百分比",gauge:"电池格",percent:"百分比",none:"隐藏"}],
         batteryColor:["电量颜色",{level:"按电量配色",auto:"跟随模块文字",...COLOR_LABELS}],
@@ -153,8 +157,18 @@ let side = SIDES.find(hand => config.screens[hand].enabled) ?? "left";
 const settings = () => config.screens[side];
 let selectedIndex = -1;
 let geometry;
+const DEFAULT_STATUS = {endpoint:"BLE",profile:1,battery:78,usb:false,charge:false};
+const STATUS_SCENES = {
+    bt1:DEFAULT_STATUS,
+    bt2:{...DEFAULT_STATUS,profile:2},
+    usb:{...DEFAULT_STATUS,endpoint:"USB",usb:true},
+    offline:{...DEFAULT_STATUS,endpoint:"OFF"},
+    low:{...DEFAULT_STATUS,battery:15},
+    charging:{...DEFAULT_STATUS,profile:2,usb:true,charge:true},
+};
 const state = {
-    endpoint:"BLE", profile:1, battery:78, usb:false, charge:false, layer:0, held:new Set(),
+    statusBySide:Object.fromEntries(SIDES.map(hand=>[hand,{...DEFAULT_STATUS}])),
+    layer:0, held:new Set(),
     manual:new Set(), caps:false, num:false, last:"", device:"", deviceUntil:0, kicked:0,
     scroll:false, recent:[], flashed:new Map(), simulated:0,
 };
@@ -325,22 +339,28 @@ function drawBatteryGauge(x,y,bars,outline,fill) {
     for (let bar = 0; bar < bars; bar++) paint(x+2+3*bar,y+2,2,8,fill);
 }
 
-function drawStatus(module,y,h,fg) {
+function drawStatus(module,y,h,fg,screen) {
+    const connectionSide = module.connectionSource === "local" ? screen : module.connectionSource;
+    const batterySide = module.batterySource === "local" ? screen : module.batterySource;
+    const {endpoint,profile} = state.statusBySide[connectionSide];
+    const {battery,usb,charge} = state.statusBySide[batterySide];
     const columns = STATUS_COLUMNS;
     const iconY = y + Math.floor((h-STATUS_ICON_HEIGHT)/2);
     const shortTextY = y + Math.floor((h-COMPACT_FONT.height)/2);
     const readableTextY = y + Math.floor((h-READABLE_FONT.height)/2);
-    const link = state.endpoint === "BLE" ? "BT" + state.profile : state.endpoint;
+    const link = endpoint === "BLE" ? "BT" + profile : endpoint;
     const linkColor = module.linkColor === "auto" ? fg : module.linkColor;
     const levelColor = module.batteryColor === "level";
-    const batteryColor = levelColor || module.batteryColor === "auto" ? fg : module.batteryColor;
+    const automaticColor = levelColor || module.batteryColor === "auto";
+    const batteryColor = automaticColor ? fg : module.batteryColor;
+    const lowBattery = automaticColor && battery < 20;
 
     if (module.icon === "icons") {
-        if (state.endpoint === "USB") {
+        if (endpoint === "USB") {
             drawStatusPixels(USB_CONNECTED_ICON,columns.connectionIcon,iconY,GREEN);
-        } else if (state.endpoint === "BLE") {
+        } else if (endpoint === "BLE") {
             drawStatusPixels(BLUETOOTH_ICON,columns.connectionIcon,iconY,BLUE);
-            bitmap(state.profile,columns.connectionIcon+11,iconY+5,1,BLUE,BLUETOOTH_PROFILE_FONT);
+            bitmap(profile,columns.connectionIcon+11,iconY+5,1,BLUE,BLUETOOTH_PROFILE_FONT);
         } else {
             drawStatusPixels(DISCONNECTED_MARK,columns.connectionIcon+2,iconY+3,RED);
         }
@@ -356,26 +376,25 @@ function drawStatus(module,y,h,fg) {
     }
 
     if (module.power === "text") {
-        if (state.usb) bitmap("PWR",columns.power,shortTextY,1,fg);
-        if (state.charge) bitmap("CHG",columns.charging,shortTextY,1,fg);
+        if (usb) bitmap("PWR",columns.power,shortTextY,1,fg);
+        if (charge) bitmap("CHG",columns.charging,shortTextY,1,fg);
     } else if (module.power === "icons") {
-        if (state.usb) drawStatusPixels(USB_POWER_ICON,columns.power,readableTextY,fg);
-        if (state.charge) drawStatusPixels(CHARGING_ICON,columns.charging,iconY,YELLOW);
+        if (usb) drawStatusPixels(USB_POWER_ICON,columns.power,readableTextY,fg);
+        if (charge) drawStatusPixels(CHARGING_ICON,columns.charging,iconY,YELLOW);
     }
 
     if (module.battery === "gauge" || module.battery === "both") {
-        const bars = Math.ceil(state.battery/25);
+        const bars = Math.ceil(battery/25);
         const outline = levelColor && bars === 0 ? RED : batteryColor;
-        const low = module.batteryColor === "auto" && state.battery < 20;
-        const fill = levelColor ? BATTERY_LEVEL_COLORS[bars] : low ? RED : batteryColor;
+        const fill = levelColor ? BATTERY_LEVEL_COLORS[bars] : lowBattery ? RED : batteryColor;
         drawBatteryGauge(columns.battery,iconY,bars,outline,fill);
     }
     if (module.battery === "percent" || module.battery === "both") {
-        const number = state.battery + "%";
+        const number = battery + "%";
         const x = columns.rightEdge - textWidth(number,1,READABLE_FONT);
-        bitmap(number,x,readableTextY,1,batteryColor,READABLE_FONT);
+        bitmap(number,x,readableTextY,1,lowBattery ? RED : batteryColor,READABLE_FONT);
     }
-    if (state.endpoint === "OFF" && h > STATUS_ICON_HEIGHT) paint(4,y+h-1,120,1,fg);
+    if (module.icon !== "none" && endpoint === "OFF" && h > STATUS_ICON_HEIGHT) paint(4,y+h-1,120,1,fg);
 }
 
 function modifiers() {
@@ -511,16 +530,17 @@ const matchesSofleMod = () => !config.keymap || geometry.keys.length === 64 &&
 const matchesSilakka = () => geometry.kind === "silakka-demo" ||
     geometry.kind === "physical-dtsi" && ZmkLayout.isSilakka(config.keymap);
 
-function drawKeyGrid(view,group,x,y,w,h,fg,now) {
+function drawKeyGrid(view,group,x,y,w,h,fg,now,widthScale=1) {
     const dims = view.board.displayBounds[group];
     const keys = view.board.displayKeys[group];
     if (!keys.length) { center("NO KEYS",x,y,w,h,1,fg); return; }
     const scale = Math.min((w-1)/dims.w,(h-1)/dims.h);
-    const left = x+(w-1-dims.w*scale)/2;
+    const horizontal = Math.min((w-1)/dims.w,scale*widthScale);
+    const left = x+(w-1-dims.w*horizontal)/2;
     const top = y+(h-1-dims.h*scale)/2;
     const cells = keys.map(([id,,x,y,w,h]) => {
-        const startX = Math.round(left+(x-dims.x)*scale), startY = Math.round(top+(y-dims.y)*scale);
-        return {id,x:startX,y:startY,w:Math.max(2,Math.round(left+(x+w-dims.x)*scale)-startX+1),
+        const startX = Math.round(left+(x-dims.x)*horizontal), startY = Math.round(top+(y-dims.y)*scale);
+        return {id,x:startX,y:startY,w:Math.max(2,Math.round(left+(x+w-dims.x)*horizontal)-startX+1),
             h:Math.max(2,Math.round(top+(y+h-dims.y)*scale)-startY+1),down:view.live && keyIsActive(id,now)};
     });
     for (const cell of cells) {
@@ -598,8 +618,8 @@ function drawKeys(module,y,h,fg,now,screen) {
         drawKeyGrid(view,0,sofle ? 1 : 2,y+1,gridWidth,body,fg,now);
         drawKeyGrid(view,1,sofle ? 70 : silakka ? 68 : 76,y+1,gridWidth,body,fg,now);
     } else {
-        const gridWidth = silakka ? 102 : 94;
-        drawKeyGrid(view,Number(!left),left ? 2 : 126-gridWidth,y+1,gridWidth,body,fg,now);
+        const gridWidth = silakka ? 102 : 100;
+        drawKeyGrid(view,Number(!left),left ? 2 : 126-gridWidth,y+1,gridWidth,body,fg,now,SINGLE_HALF_KEY_WIDTH_SCALE);
     }
 
     const middle = all ? 64 : left ? 112 : 16;
@@ -643,7 +663,7 @@ function drawModule(module,y,screenColor,now,screen) {
     pen.clip();
     const {background:bg,foreground:fg} = moduleColors(module,screenColor);
     if (bg !== screenColor) paint(0,y,SIZE,h,bg);
-    if (type === "status") drawStatus(module,y,h,fg);
+    if (type === "status") drawStatus(module,y,h,fg,screen);
     if (type === "mods") drawMods(y,h,fg);
     if (isKeyModule(module)) drawKeys(module,y,h,fg,now,screen);
     if (TYPES[type].category === "animation") drawAnimation(module,y,h,fg,now);
@@ -1287,7 +1307,8 @@ function exportProject() {
         format:ZmkProject.format,version:1,
         display:{width:SIZE,height:SIZE,colorMode:"RGB111",palette:COLORS,origin:"top-left before rotation",
             typography:{compactGlyphPx:[3,5],readableGlyphPx:[5,7],emphasisStrokePx:2},
-            keyGrid:{adjacentCells:"shared edge",borderPx:1,layerBadge:"L plus the zero-based layer index",peripheralValues:"module footer"}},
+            keyGrid:{adjacentCells:"shared edge",borderPx:1,layerBadge:"L plus the zero-based layer index",
+                peripheralValues:"module footer",singleHalfWidthScale:SINGLE_HALF_KEY_WIDTH_SCALE}},
         screens,assets:exportedAssets,
         keyboard:{geometrySource:geometry.kind,geometryUnits:"centi-keyunit",file:config.keymap?.file ?? null,
             peripherals:{fiveWayPositions:geometry.fiveWay,encoderPressPosition:geometry.encoderPress},
@@ -1447,11 +1468,39 @@ onTextUpload("physical-file",text => {
     setKeymap({...config.keymap,layout:"physical",physical:matches[0]});
     note(t("已应用物理配列 · {name}",{name:matches[0].name}) + (matches.length > 1 ? " · "+t("第一个匹配项") : ""));
 });
-by("endpoint").onchange = e => { state.endpoint = e.target.value; };
-by("profile").onchange = e => { state.profile = +e.target.value; };
-by("battery").oninput = e => { state.battery = +e.target.value; by("battery-value").value = state.battery+"%"; };
-by("usb-power").onchange = e => { state.usb = e.target.checked; };
-by("charging").onchange = e => { state.charge = e.target.checked; };
+let simulatedSide = side;
+
+function syncStatusSimulator() {
+    const current = state.statusBySide[simulatedSide];
+    by("status-side").value = simulatedSide;
+    by("endpoint").value = current.endpoint;
+    by("profile").value = current.profile;
+    by("battery").value = current.battery;
+    by("battery-value").value = current.battery+"%";
+    by("usb-power").checked = current.usb;
+    by("charging").checked = current.charge;
+    by("status-scene").value = Object.keys(STATUS_SCENES).find(scene =>
+        Object.keys(DEFAULT_STATUS).every(key=>STATUS_SCENES[scene][key] === current[key])) ?? "";
+}
+
+function updateSimulatedStatus(changes) {
+    Object.assign(state.statusBySide[simulatedSide],changes);
+    syncStatusSimulator();
+}
+
+by("status-side").onchange = e => {
+    simulatedSide = e.target.value;
+    syncStatusSimulator();
+};
+by("status-scene").onchange = e => {
+    if (Object.hasOwn(STATUS_SCENES,e.target.value)) updateSimulatedStatus(STATUS_SCENES[e.target.value]);
+    else syncStatusSimulator();
+};
+by("endpoint").onchange = e => updateSimulatedStatus({endpoint:e.target.value});
+by("profile").onchange = e => updateSimulatedStatus({profile:+e.target.value});
+by("battery").oninput = e => updateSimulatedStatus({battery:+e.target.value});
+by("usb-power").onchange = e => updateSimulatedStatus({usb:e.target.checked});
+by("charging").onchange = e => updateSimulatedStatus({charge:e.target.checked});
 by("simulate-key").onclick = () => {
     const candidates = [...keyNodes.keys()].filter(id => /^[A-Z0-9]$/i.test(binding(id)) && !state.held.has(id));
     if (candidates.length) {
@@ -1586,4 +1635,5 @@ function applyLanguage() {
 pageLanguage.onchange = () => { ColorViewLanguage.select(pageLanguage.value); applyLanguage(); };
 createKeyboard();
 applyLanguage();
+syncStatusSimulator();
 requestAnimationFrame(tick);
