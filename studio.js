@@ -974,6 +974,7 @@ function drawLibraryPreview(now) {
 
 function renderLibraryStatusPreviews(now) {
     const group = by("library-status-previews");
+    if (!group) return;
     const show = libraryDraft?.type === "status";
     group.hidden = !show;
     by("library-live-label").hidden = !show;
