@@ -339,11 +339,11 @@ function drawBatteryGauge(x,y,bars,outline,fill) {
     for (let bar = 0; bar < bars; bar++) paint(x+2+3*bar,y+2,2,8,fill);
 }
 
-function drawStatus(module,y,h,fg,screen) {
+function drawStatus(module,y,h,fg,screen,statusBySide) {
     const connectionSide = module.connectionSource === "local" ? screen : module.connectionSource;
     const batterySide = module.batterySource === "local" ? screen : module.batterySource;
-    const {endpoint,profile} = state.statusBySide[connectionSide];
-    const {battery,usb,charge} = state.statusBySide[batterySide];
+    const {endpoint,profile} = statusBySide[connectionSide];
+    const {battery,usb,charge} = statusBySide[batterySide];
     const columns = STATUS_COLUMNS;
     const iconY = y + Math.floor((h-STATUS_ICON_HEIGHT)/2);
     const shortTextY = y + Math.floor((h-COMPACT_FONT.height)/2);
@@ -654,7 +654,7 @@ function drawKeys(module,y,h,fg,now,screen) {
     }
 }
 
-function drawModule(module,y,screenColor,now,screen) {
+function drawModule(module,y,screenColor,now,screen,statusBySide=state.statusBySide) {
     const {height:h,type} = module;
     if (type === "spacer") return;
     pen.save();
@@ -663,7 +663,7 @@ function drawModule(module,y,screenColor,now,screen) {
     pen.clip();
     const {background:bg,foreground:fg} = moduleColors(module,screenColor);
     if (bg !== screenColor) paint(0,y,SIZE,h,bg);
-    if (type === "status") drawStatus(module,y,h,fg,screen);
+    if (type === "status") drawStatus(module,y,h,fg,screen,statusBySide);
     if (type === "mods") drawMods(y,h,fg);
     if (isKeyModule(module)) drawKeys(module,y,h,fg,now,screen);
     if (TYPES[type].category === "animation") drawAnimation(module,y,h,fg,now);
@@ -959,25 +959,60 @@ function renderLibraryTabs(focus) {
     if (focus) by(focus)?.focus();
 }
 
-function drawLibraryPreview(now) {
-    if (!libraryDraft || !by("module-library").open) return;
-    const canvas = by("library-lcd");
+function drawLibraryFrame(canvas,now,statusBySide) {
     const height = libraryDraft.height;
     if (canvas.height !== height) canvas.height = height;
     const screenColor = settings().theme === "dark" ? BLACK : WHITE;
     paint(0,0,SIZE,height,screenColor);
-    drawModule(libraryDraft,0,screenColor,now,side);
+    drawModule(libraryDraft,0,screenColor,now,side,statusBySide);
     canvas.getContext("2d").drawImage(back,0,0,SIZE,height,0,0,SIZE,height);
+}
+
+function drawLibraryPreview(now) {
+    if (libraryDraft && by("module-library").open) drawLibraryFrame(by("library-lcd"),now);
+}
+
+function renderLibraryStatusPreviews(now) {
+    const group = by("library-status-previews");
+    const show = libraryDraft?.type === "status";
+    group.hidden = !show;
+    by("library-live-label").hidden = !show;
+    if (!show) {
+        group.replaceChildren();
+        return;
+    }
+
+    const examples = [
+        ["BT1",STATUS_SCENES.bt1],
+        ["BT2",STATUS_SCENES.bt2],
+        ["USB",STATUS_SCENES.usb],
+        [t("离线"),STATUS_SCENES.offline],
+        [t("离线")+" · "+t("低电量"),{...STATUS_SCENES.offline,battery:STATUS_SCENES.low.battery}],
+        [t("蓝牙＋充电"),STATUS_SCENES.charging],
+    ];
+    group.replaceChildren(...examples.map(([label,status]) => {
+        const figure = document.createElement("figure");
+        const caption = document.createElement("figcaption");
+        caption.textContent = label;
+        const canvas = document.createElement("canvas");
+        canvas.width = SIZE;
+        canvas.setAttribute("aria-hidden","true");
+        drawLibraryFrame(canvas,now,{left:status,right:status});
+        figure.append(caption,canvas);
+        return figure;
+    }));
 }
 
 function renderLibraryDetail(focus) {
     by("library-selection").hidden = !libraryDraft;
     by("library-detail-hint").hidden = Boolean(libraryDraft);
     by("library-message").textContent = "";
+    const now = performance.now();
+    renderLibraryStatusPreviews(now);
     if (!libraryDraft) return;
     by("library-module-name").textContent = t(libraryDraft.name)+" · 128 × "+libraryDraft.height+" px";
     by("library-options").replaceChildren(...moduleOptions(libraryDraft,SIZE,renderLibraryDetail,"library-"));
-    drawLibraryPreview(performance.now());
+    drawLibraryPreview(now);
     if (focus) by(focus)?.focus();
 }
 

@@ -147,6 +147,7 @@ Color View 项目文档|Color View documentation|Color View 專案文件|Color V
 WPM 波形|WPM graph|WPM 波形|WPM グラフ|WPM-Diagramm|Graphique WPM|Gráfico WPM|Gráfico de WPM|WPM 그래프|Grafico WPM|График WPM|Wykres WPM
 空行|Spacer|空白列|余白|Abstand|Espace|Espaciador|Espaçador|여백|Spazio|Отступ|Odstęp
 模拟侧|Simulated half|模擬側|シミュレーション対象|Simulierte Hälfte|Moitié simulée|Mitad simulada|Metade simulada|시뮬레이션 대상|Metà simulata|Сторона симуляции|Symulowana połowa
+当前模拟状态|Current simulated state|目前模擬狀態|現在のシミュレーション状態|Aktueller Simulationszustand|État simulé actuel|Estado simulado actual|Estado simulado atual|현재 시뮬레이션 상태|Stato simulato attuale|Текущее состояние симуляции|Bieżący stan symulacji
 预览场景|Preview scenario|預覽情境|プレビュー状態|Vorschauzustand|Scénario d’aperçu|Escenario de vista previa|Cenário de prévia|미리보기 시나리오|Scenario di anteprima|Сценарий предпросмотра|Scenariusz podglądu
 低电量|Low battery|低電量|バッテリー低下|Niedriger Akkustand|Batterie faible|Batería baja|Bateria fraca|배터리 부족|Batteria scarica|Низкий заряд|Niski poziom baterii
 蓝牙＋充电|Bluetooth + charging|藍牙＋充電|Bluetooth＋充電|Bluetooth + Laden|Bluetooth + charge|Bluetooth + carga|Bluetooth + carregamento|블루투스 + 충전|Bluetooth + ricarica|Bluetooth + зарядка|Bluetooth + ładowanie

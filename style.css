@@ -94,6 +94,15 @@ input[type=checkbox],input[type=range] { accent-color:var(--accent); }
 .library-module-name { margin:5px 0 8px;font-size:12px;overflow-wrap:anywhere; }
 .library-preview { border:1px solid var(--line);border-radius:6px;background:#e7efe9;padding:7px; }
 .library-preview canvas { display:block;width:min(100%,256px);height:auto;margin:auto;image-rendering:pixelated; }
+.library-preview-label,.library-status-previews figcaption { font-size:11px;color:var(--muted); }
+.library-preview-label { margin-bottom:5px;text-align:center; }
+.library-status-previews {
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(128px,100%),1fr));gap:8px;
+  margin-top:8px;padding-top:8px;border-top:1px solid var(--line);
+}
+.library-status-previews figure { margin:0;min-width:0;text-align:center; }
+.library-status-previews figcaption { margin-bottom:3px;overflow-wrap:anywhere; }
+.library-status-previews canvas { width:min(100%,128px); }
 .library-detail .module-options { margin-bottom:8px; }
 .module-message { font-size:12px;color:#9c3027;margin:8px 0; }
 .module-message:empty { margin-top:0; }

@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Color View Studio · 显示配置</title>
   <meta name="description" content="组合显示模块并实时预览 Color View 的 128 × 128 八色画面。">
-  <link rel="stylesheet" href="style.css?v=6">
-  <script defer src="translations.js?v=11"></script>
+  <link rel="stylesheet" href="style.css?v=7">
+  <script defer src="translations.js?v=12"></script>
   <script defer src="demo-data.js?v=9"></script>
   <script defer src="zmk-layout.js?v=8"></script>
   <script defer src="zmk-project.js?v=3"></script>
-  <script defer src="studio.js?v=13"></script>
+  <script defer src="studio.js?v=14"></script>
 </head>
 <body>
   <header class="top">
@@ -136,7 +136,11 @@
           <p id="library-detail-hint" class="module-hint">选择模块以预览和设置。</p>
           <div id="library-selection" hidden>
             <p id="library-module-name" class="library-module-name"></p>
-            <div class="library-preview"><canvas id="library-lcd" width="128" height="16" role="img" aria-label="模块预览"></canvas></div>
+            <div class="library-preview">
+              <p id="library-live-label" class="library-preview-label" hidden>当前模拟状态</p>
+              <canvas id="library-lcd" width="128" height="16" role="img" aria-label="模块预览"></canvas>
+              <div id="library-status-previews" class="library-status-previews" role="group" aria-label="预览场景" hidden></div>
+            </div>
             <div id="library-options" class="module-options"></div>
             <p id="library-message" class="module-message" role="status"></p>
             <button id="library-add" type="button" class="button primary">添加到布局</button>
